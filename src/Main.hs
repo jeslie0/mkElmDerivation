@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use if" #-}
 
@@ -7,8 +6,10 @@ module Main where
 
 import Control.Monad (join)
 import Control.Monad.Reader
-import Control.Monad.State
+    ( MonadIO(liftIO), MonadReader(ask), ReaderT(runReaderT) )
+import Control.Monad.State ( MonadIO(liftIO) )
 import Control.Monad.Writer
+    ( MonadIO(liftIO), MonadWriter(tell), WriterT(runWriterT) )
 import Crypto.Hash.SHA256 (hashlazy)
 import Data.Aeson (decode, encode)
 import Data.Aeson.Key (toText)
@@ -20,7 +21,7 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as TI
 import Data.Text.Lazy.Encoding (encodeUtf8)
-import GHC.Generics
+import GHC.Generics ()
 import Network.HTTP.Simple
   ( getResponseBody,
     getResponseStatus,
@@ -35,12 +36,52 @@ import System.IO
     hFlush,
     hIsOpen,
     hIsWritable,
-    openFile,
+    openFile
   )
-import System.TimeIt
+import System.TimeIt ( timeIt )
 
+
+
+-- * Types
+
+type Version = T.Text
+type Versions = [Version]
+data ElmPackage = ElmPackage
+  { packageName :: T.Text,
+    versions :: Versions
+  } deriving (Eq, Show)
+
+type ElmPackages = [ElmPackage]
+
+data FullElmPackage = FullElmPackage
+  { package :: T.Text,
+    version :: T.Text,
+    hash :: B.ByteString
+  } deriving (Eq, Show)
+
+data Package =
+  Package { name :: T.Text
+          , ver :: T.Text
+          } deriving (Show)
+
+-- * Data
 output :: FilePath
-output = "/home/james/elmNix.nix"
+output = "/home/james/elmNix2.nix"
+
+src :: IO (Maybe (KeyMap Versions))
+src = do
+  print "Fetching elmPackages.json"
+  req <- parseRequest "https://package.elm-lang.org/all-packages"
+  resp <- httpLBS req
+  let status = getResponseStatus resp
+  if statusIsSuccessful status
+    then do
+    return . decode . getResponseBody $ resp
+    else do
+    print "Could not fetch json file"
+    return Nothing
+
+-- * Main
 
 main :: IO ()
 main = timeIt $ do
@@ -59,7 +100,6 @@ main = timeIt $ do
                 B.hPut handle "{\n"
                 (_, failures) <- runReaderT result handle
                 saveFailures failures
-                print failures
                 B.hPut handle "}\n"
                 print "Done."
                 hClose handle
@@ -77,48 +117,11 @@ saveFailures pkgs = do
 
 
 
--- * Elm Data
-
-src :: IO (Maybe (KeyMap Versions))
-src = do
-  print "Fetching elmPackages.json"
-  req <- parseRequest "https://package.elm-lang.org/search.json"
-  resp <- httpLBS req
-  let status = getResponseStatus resp
-  if statusIsSuccessful status
-    then
-    return . decode . getResponseBody $ resp
-    else do
-    print "Could not fetch json file"
-    return Nothing
-
+-- * Helper Functions
 keyMapToList :: KeyMap Versions -> ElmPackages
 keyMapToList map =
   uncurry ElmPackage . first (T.fromStrict . toText) <$> toList map
 
-type Version = T.Text
-
-type Versions = [Version]
-
-data ElmPackage = ElmPackage
-  { packageName :: T.Text,
-    versions :: Versions
-  }
-  deriving (Eq, Show)
-
-type ElmPackages = [ElmPackage]
-
-data FullElmPackage = FullElmPackage
-  { package :: T.Text,
-    version :: T.Text,
-    hash :: B.ByteString
-  }
-  deriving (Eq, Show)
-
-data Package =
-  Package { name :: T.Text
-          , ver :: T.Text
-          } deriving (Show, Generic)
 
 makeLink :: T.Text -> Version -> T.Text
 makeLink name ver =
@@ -158,28 +161,25 @@ hashElmPackage name ver = do
       liftIO . print $ "Hashing: " <> name <> ": v" <> ver
       return . Just $ prettyHash bytes
 
-downloadElmPackage :: ElmPackage -> WriterT [Package] (ReaderT Handle IO) [Maybe FullElmPackage]
+downloadElmPackage :: ElmPackage -> WriterT [Package] (ReaderT Handle IO) ()
 downloadElmPackage (ElmPackage name versions) =
-  mapM
+  mapM_
     ( \ver -> do
         handle <- ask
         mHash <- hashElmPackage name ver
         case mHash of
           Nothing -> do
-            return Nothing
+            return ()
           (Just hash) -> do
             liftIO . B.hPutStr handle $ toNix $ FullElmPackage name ver hash
             liftIO . hFlush $ handle
-            return . Just $ FullElmPackage name ver hash
     )
     versions
 
-downloadElmPackages :: ElmPackages -> WriterT [Package] (ReaderT Handle IO) [Maybe FullElmPackage]
-downloadElmPackages pkgs = do
-  foo <- mapM downloadElmPackage pkgs
-  return . join $ foo
+downloadElmPackages :: ElmPackages -> WriterT [Package] (ReaderT Handle IO) ()
+downloadElmPackages = mapM_ downloadElmPackage
 
--- To Nix function
+-- * To Nix function
 toNix :: FullElmPackage -> B.ByteString
 toNix (FullElmPackage name ver hash) =
   let nameString = encodeUtf8 name
