@@ -1,0 +1,7 @@
+#+title: ReadMe.org
+* To Change
+Have the following been updated?
+- [ ] HaskellNixtemplate.cabal's file name
+- [ ] HaskellNixtemplate.cabal's name in the file
+- [ ] HaskellNixtemplate.cabal's executable name
+- [ ] CHANGELOG.org's title
