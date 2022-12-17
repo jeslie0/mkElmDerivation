@@ -1,8 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use if" #-}
 
 module Main where
 
 import Control.Monad (join)
+import Control.Monad.Reader
 import Crypto.Hash.SHA256 (hashlazy)
 import Data.Aeson (decode)
 import Data.Aeson.Key (toText)
@@ -38,9 +41,9 @@ main :: IO ()
 main = timeIt $ do
   handle <- openFile output WriteMode
   fileOkay <- (&&) <$> hIsOpen handle <*> hIsWritable handle
-  ( if fileOkay
-      then
-        ( do
+  case fileOkay of
+        False ->  print "Can't open File"
+        True -> do
             B.hPut handle "{\n"
             mSrc <- src
             case mSrc of
@@ -49,13 +52,11 @@ main = timeIt $ do
                 B.hPut handle "}\n"
                 hClose handle
               (Just keyMap) -> do
-                downloadElmPackages handle . keyMapToList $ keyMap
+                runReaderT (downloadElmPackages $ keyMapToList keyMap) handle
                 B.hPut handle "}\n"
                 print "Done."
                 hClose handle
-        )
-      else print "Can't open File"
-    )
+
 
 -- * Elm Data
 
@@ -99,45 +100,48 @@ prettyHash = toLazyByteString . byteStringHex . hashlazy
 
 -- * Download data
 
-downloadPackage :: Handle -> T.Text -> Version -> IO (Maybe B.ByteString)
-downloadPackage handle name ver = do
-  print $ "Downloading " <> name <> ": v" <> ver <> "."
+downloadPackage :: T.Text -> Version -> ReaderT Handle IO (Maybe B.ByteString)
+downloadPackage name ver = do
+  handle <- ask
+  liftIO . print $ "Downloading " <> name <> ": v" <> ver <> "."
   req <- parseRequest . T.unpack $ makeLink name ver
   resp <- httpLBS req
   let status = getResponseStatus resp
   if statusIsSuccessful status
     then do
-      print $ "Successfully downloaded " <> name <> "."
+      liftIO . print $ "Successfully downloaded " <> name <> "."
       return . Just $ getResponseBody resp
     else do
-      print $ "Failed to fetch " <> name <> " " <> ver <> "."
-      B.hPut handle "}\n"
+      liftIO . print $ "Failed to fetch " <> name <> " " <> ver <> "."
+      liftIO $ B.hPut handle "}\n"
       return Nothing
 
-hashElmPackage :: Handle -> T.Text -> Version -> IO (Maybe B.ByteString)
-hashElmPackage handle name ver = do
-  mBytes <- downloadPackage handle name ver
-  print $ "Hashing: " <> name <> ": v" <> ver
+hashElmPackage :: T.Text -> Version -> ReaderT Handle IO (Maybe B.ByteString)
+hashElmPackage name ver = do
+  handle <- ask
+  mBytes <- downloadPackage name ver
+  liftIO . print $ "Hashing: " <> name <> ": v" <> ver
   return $ prettyHash <$> mBytes
 
-downloadElmPackage :: Handle -> ElmPackage -> IO [Maybe FullElmPackage]
-downloadElmPackage handle (ElmPackage name versions) =
+downloadElmPackage :: ElmPackage -> ReaderT Handle IO [Maybe FullElmPackage]
+downloadElmPackage (ElmPackage name versions) =
   mapM
     ( \ver -> do
-        mHash <- hashElmPackage handle name ver
+        handle <- ask
+        mHash <- hashElmPackage name ver
         case mHash of
           Nothing -> do
             return Nothing
           (Just hash) -> do
-            B.hPutStr handle $ toNix $ FullElmPackage name ver hash
-            hFlush handle
+            liftIO . B.hPutStr handle $ toNix $ FullElmPackage name ver hash
+            liftIO . hFlush $ handle
             return . Just $ FullElmPackage name ver hash
     )
     versions
 
-downloadElmPackages :: Handle -> ElmPackages -> IO [Maybe FullElmPackage]
-downloadElmPackages handle pkgs = do
-  foo <- mapM (downloadElmPackage handle) pkgs
+downloadElmPackages :: ElmPackages -> ReaderT Handle IO [Maybe FullElmPackage]
+downloadElmPackages pkgs = do
+  foo <- mapM downloadElmPackage pkgs
   return . join $ foo
 
 -- To Nix function

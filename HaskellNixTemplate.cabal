@@ -35,6 +35,7 @@ executable Main
                       cryptohash-sha256,
                       http-conduit,
                       http-types,
+                      mtl,
                       text,
                       timeit
     hs-source-dirs:   src
