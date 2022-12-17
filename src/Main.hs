@@ -1,6 +1,8 @@
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use if" #-}
+{-# HLINT ignore "Redundant section" #-}
 
 module Main where
 
@@ -46,9 +48,10 @@ import System.TimeIt ( timeIt )
 
 type Version = T.Text
 type Versions = [Version]
+
 data ElmPackage = ElmPackage
   { packageName :: T.Text,
-    versions :: Versions
+    versions :: Version
   } deriving (Eq, Show)
 
 type ElmPackages = [ElmPackage]
@@ -59,10 +62,6 @@ data FullElmPackage = FullElmPackage
     hash :: B.ByteString
   } deriving (Eq, Show)
 
-data Package =
-  Package { name :: T.Text
-          , ver :: T.Text
-          } deriving (Show)
 
 -- * Data
 output :: FilePath
@@ -104,7 +103,7 @@ main = timeIt $ do
                 print "Done."
                 hClose handle
 
-saveFailures :: [Package] -> IO ()
+saveFailures :: ElmPackages -> IO ()
 saveFailures [] = print "No failures to save."
 saveFailures pkgs = do
   handle <- openFile "/home/james/Documents/Projects/elmNix/failures" WriteMode
@@ -112,16 +111,16 @@ saveFailures pkgs = do
   case fileOkay of
     False -> print "Can't open failures file."
     True -> do
-      mapM_ (TI.hPutStrLn handle . (\(Package nom ve) -> nom <> ": " <> ve)) pkgs
+      mapM_ (TI.hPutStrLn handle . (\(ElmPackage nom ve) -> nom <> ": " <> ve)) pkgs
       hClose handle
 
 
 
 -- * Helper Functions
 keyMapToList :: KeyMap Versions -> ElmPackages
-keyMapToList map =
-  uncurry ElmPackage . first (T.fromStrict . toText) <$> toList map
-
+keyMapToList keymap =
+  uncurry ElmPackage . first (T.fromStrict . toText) <$>
+  ((\(k, vs) -> (k,) <$> vs) =<<) (toList keymap)
 
 makeLink :: T.Text -> Version -> T.Text
 makeLink name ver =
@@ -135,7 +134,7 @@ prettyHash = toLazyByteString . byteStringHex . hashlazy
 
 -- * Download data
 
-downloadPackage :: T.Text -> Version -> WriterT [Package] (ReaderT Handle IO) (Maybe B.ByteString)
+downloadPackage :: T.Text -> Version -> WriterT ElmPackages (ReaderT Handle IO) (Maybe B.ByteString)
 downloadPackage name ver = do
   handle <- ask
   liftIO . print $ "Downloading " <> name <> ": v" <> ver <> "."
@@ -148,10 +147,10 @@ downloadPackage name ver = do
       return . Just $ getResponseBody resp
     else do
       liftIO . print $ "Failed to fetch " <> name <> " " <> ver <> "."
-      tell [Package name ver]
+      tell [ElmPackage name ver]
       return Nothing
 
-hashElmPackage :: T.Text -> Version -> WriterT [Package] (ReaderT Handle IO) (Maybe B.ByteString)
+hashElmPackage :: T.Text -> Version -> WriterT ElmPackages (ReaderT Handle IO) (Maybe B.ByteString)
 hashElmPackage name ver = do
   handle <- ask
   mBytes <- downloadPackage name ver
@@ -161,22 +160,19 @@ hashElmPackage name ver = do
       liftIO . print $ "Hashing: " <> name <> ": v" <> ver
       return . Just $ prettyHash bytes
 
-downloadElmPackage :: ElmPackage -> WriterT [Package] (ReaderT Handle IO) ()
-downloadElmPackage (ElmPackage name versions) =
-  mapM_
-    ( \ver -> do
-        handle <- ask
-        mHash <- hashElmPackage name ver
-        case mHash of
-          Nothing -> do
-            return ()
-          (Just hash) -> do
-            liftIO . B.hPutStr handle $ toNix $ FullElmPackage name ver hash
-            liftIO . hFlush $ handle
-    )
-    versions
+downloadElmPackage :: ElmPackage -> WriterT ElmPackages (ReaderT Handle IO) ()
+downloadElmPackage (ElmPackage name version) = do
+  handle <- ask
+  mHash <- hashElmPackage name version
+  case mHash of
+    Nothing -> do
+        return ()
+    Just hash -> do
+         liftIO . B.hPutStr handle $ toNix $ FullElmPackage name version hash
+         liftIO . hFlush $ handle
 
-downloadElmPackages :: ElmPackages -> WriterT [Package] (ReaderT Handle IO) ()
+
+downloadElmPackages :: ElmPackages -> WriterT ElmPackages (ReaderT Handle IO) ()
 downloadElmPackages = mapM_ downloadElmPackage
 
 -- * To Nix function
