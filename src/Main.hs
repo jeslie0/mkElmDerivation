@@ -5,32 +5,34 @@
 {-# HLINT ignore "Redundant section" #-}
 
 module Main where
-import Control.Concurrent
+import Control.Concurrent ( newMVar, takeMVar, MVar )
 import Control.Concurrent.Pool
-import Control.Monad
+    ( newPoolIO, noMoreTasksIO, queue, waitForIO )
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Control.Monad.Reader
-    ( MonadReader(ask), ReaderT(runReaderT), MonadIO(liftIO), MonadTrans )
-import Control.Monad.Writer
-    ( MonadWriter(tell), WriterT(runWriterT), MonadIO(liftIO) )
+    ( ReaderT(runReaderT), MonadReader(ask) )
 import Crypto.Hash.SHA256 ( hashlazy )
-import Data.Aeson
-import Data.Aeson.Key
-import Data.Aeson.KeyMap
-import Data.Bifunctor
-import Data.ByteString.Builder ( byteStringHex, toLazyByteString )
+import Data.Aeson ( decode )
+import Data.Aeson.Key ( toText )
+import Data.Aeson.KeyMap ( toList, KeyMap )
+import Data.Bifunctor ( Bifunctor(first) )
+import Data.ByteString.Builder ( toLazyByteString, byteStringHex )
 import qualified Data.ByteString.Internal as I
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as TI
 import Data.Text.Lazy.Encoding ( encodeUtf8 )
 import Network.HTTP.Simple
-    ( getResponseBody, getResponseStatus, httpLBS, parseRequest )
-import Network.HTTP.Types.Status
+    ( parseRequest, getResponseBody, getResponseStatus, httpLBS )
+import Network.HTTP.Types.Status ( statusIsSuccessful )
 import System.IO
-import System.TimeIt ( timeIt )
-
-import Control.Monad.State
+    ( Handle,
+      IOMode(WriteMode),
+      hClose,
+      hFlush,
+      hIsOpen,
+      hIsWritable,
+      openFile )
 
 
 
