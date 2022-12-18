@@ -5,42 +5,31 @@
 {-# HLINT ignore "Redundant section" #-}
 
 module Main where
-
-import Control.Monad (join)
+import Control.Concurrent
+import Control.Monad
+import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Control.Monad.Reader
-    ( MonadIO(liftIO), MonadReader(ask), ReaderT(runReaderT) )
-import Control.Monad.State ( MonadIO(liftIO) )
+    ( MonadReader(ask), ReaderT(runReaderT), MonadIO(liftIO), MonadTrans )
 import Control.Monad.Writer
-    ( MonadIO(liftIO), MonadWriter(tell), WriterT(runWriterT) )
-import Crypto.Hash.SHA256 (hashlazy)
-import Data.Aeson (decode, encode)
-import Data.Aeson.Key (toText)
-import Data.Aeson.KeyMap (KeyMap, toList)
-import Data.Bifunctor (first)
-import Data.ByteString.Builder (byteStringHex, toLazyByteString)
+    ( MonadWriter(tell), WriterT(runWriterT), MonadIO(liftIO) )
+import Crypto.Hash.SHA256 ( hashlazy )
+import Data.Aeson
+import Data.Aeson.Key
+import Data.Aeson.KeyMap
+import Data.Bifunctor
+import Data.ByteString.Builder ( byteStringHex, toLazyByteString )
 import qualified Data.ByteString.Internal as I
 import qualified Data.ByteString.Lazy as B
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as TI
-import Data.Text.Lazy.Encoding (encodeUtf8)
-import GHC.Generics ()
+import Data.Text.Lazy.Encoding ( encodeUtf8 )
 import Network.HTTP.Simple
-  ( getResponseBody,
-    getResponseStatus,
-    httpLBS,
-    parseRequest,
-  )
-import Network.HTTP.Types.Status (statusIsSuccessful)
+    ( getResponseBody, getResponseStatus, httpLBS, parseRequest )
+import Network.HTTP.Types.Status
 import System.IO
-  ( Handle,
-    IOMode (WriteMode),
-    hClose,
-    hFlush,
-    hIsOpen,
-    hIsWritable,
-    openFile
-  )
 import System.TimeIt ( timeIt )
+
+import Control.Monad.State
 
 
 
@@ -95,11 +84,13 @@ main = timeIt $ do
                 print "Failed to parse JSON."
                 hClose handle
               (Just keyMap) -> do
-                let result = runWriterT (downloadElmPackages $ keyMapToList keyMap)
+                mvar <- newMVar []
                 B.hPut handle "{\n"
-                (_, failures) <- runReaderT result handle
-                saveFailures failures
+                runReaderT (downloadElmPackages mvar $ keyMapToList keyMap) handle
                 B.hPut handle "}\n"
+
+                failedPackages <- takeMVar mvar
+                saveFailures failedPackages
                 print "Done."
                 hClose handle
 
@@ -134,8 +125,9 @@ prettyHash = toLazyByteString . byteStringHex . hashlazy
 
 -- * Download data
 
-downloadPackage :: T.Text -> Version -> WriterT ElmPackages (ReaderT Handle IO) (Maybe B.ByteString)
-downloadPackage name ver = do
+-- | Download the specified elm package into a bytestring.
+downloadPackage :: ElmPackage -> ReaderT Handle IO (Maybe B.ByteString)
+downloadPackage (ElmPackage name ver) = do
   handle <- ask
   liftIO . print $ "Downloading " <> name <> ": v" <> ver <> "."
   req <- parseRequest . T.unpack $ makeLink name ver
@@ -147,23 +139,22 @@ downloadPackage name ver = do
       return . Just $ getResponseBody resp
     else do
       liftIO . print $ "Failed to fetch " <> name <> " " <> ver <> "."
-      tell [ElmPackage name ver]
       return Nothing
 
-hashElmPackage :: T.Text -> Version -> WriterT ElmPackages (ReaderT Handle IO) (Maybe B.ByteString)
-hashElmPackage name ver = do
+hashElmPackage :: ElmPackage -> ReaderT Handle IO (Maybe B.ByteString)
+hashElmPackage elmPkg@(ElmPackage name ver) = do
   handle <- ask
-  mBytes <- downloadPackage name ver
+  mBytes <- downloadPackage elmPkg
   case mBytes of
     Nothing -> return Nothing
     Just bytes -> do
       liftIO . print $ "Hashing: " <> name <> ": v" <> ver
       return . Just $ prettyHash bytes
 
-downloadElmPackage :: ElmPackage -> WriterT ElmPackages (ReaderT Handle IO) ()
-downloadElmPackage (ElmPackage name version) = do
+downloadElmPackage :: MVar ElmPackages -> ElmPackage -> ReaderT Handle IO ()
+downloadElmPackage mvar elmPkg@(ElmPackage name version) = do
   handle <- ask
-  mHash <- hashElmPackage name version
+  mHash <- hashElmPackage elmPkg
   case mHash of
     Nothing -> do
         return ()
@@ -172,8 +163,11 @@ downloadElmPackage (ElmPackage name version) = do
          liftIO . hFlush $ handle
 
 
-downloadElmPackages :: ElmPackages -> WriterT ElmPackages (ReaderT Handle IO) ()
-downloadElmPackages = mapM_ downloadElmPackage
+downloadElmPackages :: MVar ElmPackages -> ElmPackages -> ReaderT Handle IO ()
+downloadElmPackages mvar pkgs = do
+  handle <- ask
+  let x = mapM_ (\rDld -> forkIO $! runReaderT (downloadElmPackage mvar rDld) handle) pkgs
+  liftIO x
 
 -- * To Nix function
 toNix :: FullElmPackage -> B.ByteString
@@ -181,3 +175,13 @@ toNix (FullElmPackage name ver hash) =
   let nameString = encodeUtf8 name
       verString = encodeUtf8 ver
    in "    \"" <> nameString <> "\".\"" <> verString <> "\" = \"" <> hash <> "\";\n"
+
+
+
+-- * Test
+
+-- myFork :: Int -> [IO ()] -> IO ()
+-- myFork _ [] = return ()
+-- myFork n xs
+--   | length xs <= n = mapM_ forkIO xs
+--   | otherwise      =
