@@ -6,6 +6,7 @@
 
 module Main where
 import Control.Concurrent
+import Control.Concurrent.Pool
 import Control.Monad
 import Control.Monad.IO.Class ( MonadIO(liftIO) )
 import Control.Monad.Reader
@@ -72,7 +73,7 @@ src = do
 -- * Main
 
 main :: IO ()
-main = timeIt $ do
+main = do
   handle <- openFile output WriteMode
   fileOkay <- (&&) <$> hIsOpen handle <*> hIsWritable handle
   case fileOkay of
@@ -166,8 +167,12 @@ downloadElmPackage mvar elmPkg@(ElmPackage name version) = do
 downloadElmPackages :: MVar ElmPackages -> ElmPackages -> ReaderT Handle IO ()
 downloadElmPackages mvar pkgs = do
   handle <- ask
-  let x = mapM_ (\rDld -> forkIO $! runReaderT (downloadElmPackage mvar rDld) handle) pkgs
-  liftIO x
+  pool <- liftIO $ newPoolIO 100 False
+  let elmPkgProcess rDld = runReaderT (downloadElmPackage mvar rDld) handle
+      downloadPackagesInPool = mapM_ ((\io -> queue pool io ()). elmPkgProcess) $ take 100 pkgs
+  liftIO downloadPackagesInPool
+  liftIO $ noMoreTasksIO pool
+  liftIO $ waitForIO pool
 
 -- * To Nix function
 toNix :: FullElmPackage -> B.ByteString
@@ -178,10 +183,3 @@ toNix (FullElmPackage name ver hash) =
 
 
 
--- * Test
-
--- myFork :: Int -> [IO ()] -> IO ()
--- myFork _ [] = return ()
--- myFork n xs
---   | length xs <= n = mapM_ forkIO xs
---   | otherwise      =
