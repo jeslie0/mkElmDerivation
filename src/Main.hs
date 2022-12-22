@@ -1,15 +1,14 @@
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedLists #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
 {-# HLINT ignore "Use if" #-}
 {-# HLINT ignore "Redundant section" #-}
 
-module Main where
-import GHC.Generics
-import qualified Data.Map as M
+module Main (main) where
 
 import Control.Concurrent
 import Control.Concurrent.Pool
@@ -21,93 +20,113 @@ import Data.Bifunctor
 import Data.ByteString.Builder
 import qualified Data.ByteString.Internal as I
 import qualified Data.ByteString.Lazy as B
+import qualified Data.Map as M
 import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.IO as TI
 import Data.Text.Lazy.Encoding
+import qualified Data.Text.Lazy.IO as TI
+import GHC.Generics
 import Network.HTTP.Simple
 import Network.HTTP.Types.Status
 import System.IO
 
-
-
-
 -- * Types
 
 type Name = T.Text
+
 type Hash = T.Text
+
 type Version = T.Text
-type Versions = [ Version ]
+
+type Versions = [Version]
 
 data ElmPackage = ElmPackage
   { packageName :: T.Text,
-    versi :: Version
-  } deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
+    version :: Version
+  }
+  deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
 
 type ElmPackages = [ElmPackage]
 
-data FullElmPackage = FullElmPackage
-  { package :: T.Text,
-    version :: T.Text,
-    hash :: T.Text
-  } deriving (Eq, Show, Generic, ToJSON, FromJSON)
-
-newtype ElmPackageVersionList =
-  ElmPackageVersionList [ T.Text ]
-                         deriving (Generic, Show, ToJSON, FromJSON)
-
 
 -- * Data
-
 
 base :: FilePath
 base = "/home/james/"
 
 output :: FilePath
-output = base <> "elmNix.json"
+output = base <> "elmNix2.json"
 
 failures :: FilePath
 failures = base <> "elmNixFailure.json"
 
 -- | Fetch elmPackages JSON and parse into a map.
-src :: IO (Maybe (M.Map Name Versions))
-src = do
+remoteSrc :: IO (Maybe (M.Map Name Versions))
+remoteSrc = do
   print "Fetching elmPackages.json"
   req <- parseRequest "https://package.elm-lang.org/all-packages"
   resp <- httpLBS req
   let status = getResponseStatus resp
   if statusIsSuccessful status
     then do
-    return . decode . getResponseBody $ resp
+      return . decode . getResponseBody $ resp
     else do
-    print "Could not fetch json file"
-    return Nothing
+      print "Could not fetch json file"
+      return Nothing
+
+localSrc :: IO (Maybe (M.Map Name Versions))
+localSrc = do
+  decode <$> B.readFile "/home/james/Documents/Projects/elmNix/package.elm-lang.org.json"
 
 -- * Main
 
 main :: IO ()
 main = do
-  handle <- openFile output WriteMode
-  fileOkay <- (&&) <$> hIsOpen handle <*> hIsWritable handle
+  handle <- openFile output ReadMode
+  fileOkay <- (&&) <$> hIsOpen handle <*> hIsReadable handle
   case fileOkay of
-        False ->  print "Can't open File"
-        True -> do
-            mSrc <- src
-            case mSrc of
-              Nothing -> do
-                print "Failed to parse JSON."
-                hClose handle
-              (Just keyMap) -> do
-                sucMvar <- newMVar M.empty
-                failMvar <- newMVar []
-                runReaderT (downloadElmPackages sucMvar failMvar $ keyMapToList keyMap) handle
+    False -> print "Can't open File"
+    True -> canOpenFile handle
 
-                failedPackages <- takeMVar failMvar
-                saveFailures failedPackages
+canOpenFile :: Handle -> IO ()
+canOpenFile handle = do
+  mSrc <- remoteSrc
+  case mSrc of
+    Nothing -> do
+      print "Failed to parse JSON."
+      hClose handle
+    (Just keyMap) -> parsedJson keyMap handle
 
-                successfulPackages <- takeMVar sucMvar
-                B.hPut handle $ encode successfulPackages
-                print "Done."
-                hClose handle
+parsedJson :: M.Map Name Versions -> Handle -> IO ()
+parsedJson keyMap handle = do
+  alreadyHashedM <- decode <$> B.hGetContents handle :: IO (Maybe (M.Map Name (M.Map Version Hash)))
+  seq alreadyHashedM (return ())
+  newHandle <- openFile output WriteMode
+  case alreadyHashedM of
+    Just alreadyHashed -> do
+      let toHash = extractNewPackages keyMap alreadyHashed
+      seq toHash $ go alreadyHashed toHash newHandle
+    Nothing -> do
+      print "Failed to parse output file when checking prehashed files"
+      go M.empty keyMap newHandle
+
+go :: M.Map Name (M.Map Version Hash) -> M.Map Name Versions -> Handle -> IO ()
+go alreadyHashed toHash handle = do
+  sucMvar <- newMVar M.empty
+  failMvar <- newMVar []
+  countMvar <- newMVar 0
+
+  runReaderT (downloadElmPackages sucMvar failMvar countMvar $ keyMapToList toHash) handle
+
+  failedPackages <- takeMVar failMvar
+  saveFailures failedPackages
+
+  successfulPackages <- takeMVar sucMvar
+  B.hPut handle . encode $ joinNewPackages successfulPackages alreadyHashed
+
+  count <- takeMVar countMvar
+  print $ "Done. Downloaded and hashed " <> show count <> " packages"
+  hClose handle
+
 
 saveFailures :: ElmPackages -> IO ()
 saveFailures [] = print "No failures to save."
@@ -120,13 +139,12 @@ saveFailures pkgs = do
       mapM_ (TI.hPutStrLn handle . (\(ElmPackage nom ve) -> nom <> ": " <> ve)) pkgs
       hClose handle
 
-
-
 -- * Helper Functions
+
 keyMapToList :: M.Map Name Versions -> ElmPackages
 keyMapToList keymap =
-  uncurry ElmPackage <$>
-  ((\(k, vs) -> (k,) <$> vs) =<<) (M.toList keymap)
+  uncurry ElmPackage
+    <$> ((\(k, vs) -> (k,) <$> vs) =<<) (M.toList keymap)
 
 makeLink :: T.Text -> Version -> T.Text
 makeLink name ver =
@@ -137,6 +155,7 @@ makeLink name ver =
 -- | Hash the given bytes and print it nicely.
 prettyHash :: B.ByteString -> Hash
 prettyHash = decodeUtf8 . toLazyByteString . byteStringHex . hashlazy
+
 
 -- * Download data
 
@@ -156,6 +175,7 @@ downloadPackage (ElmPackage name ver) = do
       liftIO . print $ "Failed to fetch " <> name <> " " <> ver <> "."
       return Nothing
 
+
 hashElmPackage :: ElmPackage -> ReaderT Handle IO (Maybe Hash)
 hashElmPackage elmPkg@(ElmPackage name ver) = do
   handle <- ask
@@ -166,64 +186,72 @@ hashElmPackage elmPkg@(ElmPackage name ver) = do
       liftIO . print $ "Hashing: " <> name <> ": v" <> ver
       return . Just $ prettyHash bytes
 
-downloadElmPackage :: MVar (M.Map Name (M.Map Version Hash)) -- ^ Hashed packages
-  -> MVar ElmPackages -- ^ Failed packages
-  -> ElmPackage -- ^ Package we are hashing
-  -> ReaderT Handle IO ()
-downloadElmPackage sucMvar failMvar elmPkg@(ElmPackage name version) = do
+
+downloadElmPackage ::
+  -- | Hashed packages
+  MVar (M.Map Name (M.Map Version Hash)) ->
+  -- | Failed packages
+  MVar ElmPackages ->
+  -- | Package we are hashing
+  MVar Int ->
+  ElmPackage ->
+  ReaderT Handle IO ()
+downloadElmPackage sucMvar failMvar countMvar elmPkg@(ElmPackage name version) = do
   handle <- ask
   mHash <- hashElmPackage elmPkg
   case mHash of
     Nothing -> do
       -- Add to failed pkgs mvar
-      liftIO $ modifyMVar_ failMvar (\ps -> return (elmPkg:ps))
+      liftIO $ modifyMVar_ failMvar (\ps -> return (elmPkg : ps))
     Just hash -> do
       -- Add to successful pkgs mvar
       seq hash $ return ()
       liftIO $ modifyMVar_ sucMvar (return . addHashToMap elmPkg hash)
+      liftIO $ modifyMVar_ countMvar (\n -> return $! n + 1)
 
-
-
-addHashToMap :: ElmPackage -- ^ Elm Package
-  -> Hash -- ^ Corresponding Hash
-  -> M.Map Name (M.Map Version Hash) -- ^ Map to update
-  -> M.Map Name (M.Map Version Hash)
+addHashToMap ::
+  -- | Elm Package
+  ElmPackage ->
+  -- | Corresponding Hash
+  Hash ->
+  -- | Map to update
+  M.Map Name (M.Map Version Hash) ->
+  M.Map Name (M.Map Version Hash)
 addHashToMap elmPkg@(ElmPackage name ver) hash =
   M.insertWith (\oldVerMap newVerMap -> M.insert ver hash newVerMap) name (M.insert ver hash M.empty)
 
-
 downloadElmPackages :: MVar (M.Map Name (M.Map Version Hash)) -- ^
   -> MVar ElmPackages -- ^
+  -> MVar Int -- ^ Count mvar
   -> ElmPackages -- ^
-  -> ReaderT Handle IO ()
-downloadElmPackages sucMvar failMvar pkgs = do
+  ->
+  ReaderT Handle IO ()
+downloadElmPackages sucMvar failMvar countMvar pkgs = do
   handle <- ask
   pool <- liftIO $ newPoolIO 100 False
-  let elmPkgProcess rDld = runReaderT (downloadElmPackage sucMvar failMvar rDld) handle
-      downloadPackagesInPool = mapM_ ((\io -> queue pool io ()). elmPkgProcess) $ take 100 pkgs
+  let elmPkgProcess rDld = runReaderT (downloadElmPackage sucMvar failMvar countMvar rDld) handle
+      downloadPackagesInPool = mapM_ ((\io -> queue pool io ()) . elmPkgProcess) pkgs
   liftIO downloadPackagesInPool
   liftIO $ noMoreTasksIO pool
   liftIO $ waitForIO pool
 
 -- * To Nix function
+
 -- toNix :: FullElmPackage -> B.ByteString
 -- toNix (FullElmPackage name ver hash) =
 --   let nameString = encodeUtf8 name
 --       verString = encodeUtf8 ver
 --    in "    \"" <> nameString <> "\".\"" <> verString <> "\" = \"" <> hash <> "\";\n"
 
+foo :: FilePath -> IO (Maybe (M.Map Name (M.Map Version Hash)))
+foo path = decode <$> B.readFile path
 
 
--- * Json experiments
+extractNewPackages :: (Ord a, Ord b) => M.Map a [b] -> M.Map a (M.Map b c) -> M.Map a [b]
+extractNewPackages =
+  M.differenceWithKey (\key vers verHashMap -> let newVers = [ v | v <- vers, not (v `M.member` verHashMap) ]
+                     in if null newVers then Nothing else Just newVers)
 
-
-srcTest :: IO (Maybe (M.Map String ElmPackageVersionList))
-srcTest = do
-  print "Fetching elmPackages.json"
-  bytes <- B.readFile "/home/james/Documents/Projects/elmNix/test.json"
-  return . decode $ bytes
-
-foo :: Maybe (M.Map String [String])
-foo = decode $ encode mp
-  where
-    mp = M.insert "Hi" (ElmPackageVersionList ["Value"]) M.empty :: M.Map String ElmPackageVersionList
+joinNewPackages :: (Ord a, Ord b) => M.Map a (M.Map b c) -> M.Map a (M.Map b c) -> M.Map a (M.Map b c)
+joinNewPackages =
+  M.unionWith M.union

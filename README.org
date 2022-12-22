@@ -8,6 +8,4 @@ Have the following been updated?
 * Progress
 Currently, we can parse the downloaded elm package json, and get the hashes for the packages. The outputted file has correct hashes in it, however failures to download the package aren't handled well.
 
-  - [ ] Come up with a name for this project.
-  - [ ] GOAL: Add in the multi run. If the downloaded JSON hasn't changed, the resulting file shouldn't change.
-    - [ ] Add in a comparison test: If a package has already been hashed, it shouldn't be hashed again. Maybe we can have a dictionary of hashed results that is stored and updated in an MVar.
+    - [ ] Come up with a name for this project.
