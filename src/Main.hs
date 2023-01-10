@@ -47,6 +47,13 @@ data ElmPackage = ElmPackage
 
 type ElmPackages = [ElmPackage]
 
+data ReadState = ReadState
+  { hashedPkgsMvar :: MVar (M.Map Name (M.Map Version Hash))
+  , failedPkgsMvar :: MVar ElmPackages
+  , successesMvar :: MVar Int
+  , outputHandle :: Handle
+  }
+
 
 -- * Data
 
@@ -115,7 +122,7 @@ go alreadyHashed toHash handle = do
   failMvar <- newMVar []
   countMvar <- newMVar 0
 
-  runReaderT (downloadElmPackages sucMvar failMvar countMvar $ keyMapToList toHash) handle
+  runReaderT (downloadElmPackages $ keyMapToList toHash) $ ReadState sucMvar failMvar countMvar handle
 
   failedPackages <- takeMVar failMvar
   saveFailures failedPackages
@@ -160,10 +167,9 @@ prettyHash = decodeUtf8 . toLazyByteString . byteStringHex . hashlazy
 -- * Download data
 
 -- | Download the specified elm package into a bytestring.
-downloadPackage :: ElmPackage -> ReaderT Handle IO (Maybe B.ByteString)
+downloadPackage :: ElmPackage -> IO (Maybe B.ByteString)
 downloadPackage (ElmPackage name ver) = do
-  handle <- ask
-  liftIO . print $ "Downloading " <> name <> ": v" <> ver <> "."
+  print $ "Downloading " <> name <> ": v" <> ver <> "."
   req <- parseRequest . T.unpack $ makeLink name ver
   resp <- httpLBS req
   let status = getResponseStatus resp
@@ -176,9 +182,8 @@ downloadPackage (ElmPackage name ver) = do
       return Nothing
 
 
-hashElmPackage :: ElmPackage -> ReaderT Handle IO (Maybe Hash)
+hashElmPackage :: ElmPackage -> IO (Maybe Hash)
 hashElmPackage elmPkg@(ElmPackage name ver) = do
-  handle <- ask
   mBytes <- downloadPackage elmPkg
   case mBytes of
     Nothing -> return Nothing
@@ -187,18 +192,10 @@ hashElmPackage elmPkg@(ElmPackage name ver) = do
       return . Just $ prettyHash bytes
 
 
-downloadElmPackage ::
-  -- | Hashed packages
-  MVar (M.Map Name (M.Map Version Hash)) ->
-  -- | Failed packages
-  MVar ElmPackages ->
-  -- | Package we are hashing
-  MVar Int ->
-  ElmPackage ->
-  ReaderT Handle IO ()
-downloadElmPackage sucMvar failMvar countMvar elmPkg@(ElmPackage name version) = do
-  handle <- ask
-  mHash <- hashElmPackage elmPkg
+downloadElmPackage :: ElmPackage -> ReaderT ReadState IO ()
+downloadElmPackage elmPkg = do
+  (ReadState sucMvar failMvar countMvar _) <- ask
+  mHash <- liftIO $ hashElmPackage elmPkg
   case mHash of
     Nothing -> do
       -- Add to failed pkgs mvar
@@ -217,19 +214,14 @@ addHashToMap ::
   -- | Map to update
   M.Map Name (M.Map Version Hash) ->
   M.Map Name (M.Map Version Hash)
-addHashToMap elmPkg@(ElmPackage name ver) hash =
+addHashToMap (ElmPackage name ver) hash =
   M.insertWith (\oldVerMap newVerMap -> M.insert ver hash newVerMap) name (M.insert ver hash M.empty)
 
-downloadElmPackages :: MVar (M.Map Name (M.Map Version Hash)) -- ^
-  -> MVar ElmPackages -- ^
-  -> MVar Int -- ^ Count mvar
-  -> ElmPackages -- ^
-  ->
-  ReaderT Handle IO ()
-downloadElmPackages sucMvar failMvar countMvar pkgs = do
-  handle <- ask
+downloadElmPackages :: ElmPackages -> ReaderT ReadState IO ()
+downloadElmPackages pkgs = do
+  state <- ask
   pool <- liftIO $ newPoolIO 100 False
-  let elmPkgProcess rDld = runReaderT (downloadElmPackage sucMvar failMvar countMvar rDld) handle
+  let elmPkgProcess rDld = runReaderT (downloadElmPackage rDld) state
       downloadPackagesInPool = mapM_ ((\io -> queue pool io ()) . elmPkgProcess) pkgs
   liftIO downloadPackagesInPool
   liftIO $ noMoreTasksIO pool
