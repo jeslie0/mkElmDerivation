@@ -41,16 +41,6 @@
       {
         packages.${packageName} = haskellPackages.callCabal2nix packageName self { };
 
-        packages.test = pkgs.stdenv.mkDerivation {
-          name = "test";
-          src = pkgs.fetchurl {
-            url = "https://github.com/0ui/elm-task-parallel/archive/2.0.0.tar.gz";
-            sha256 = with builtins; (fromJSON (readFile ./elmData.json))."0ui/elm-task-parallel"."2.0.0";
-          };
-          installPhase = "mkdir $out/; cat ${self.outputs.elmSrcsFunc ./elm.json} $out";
-
-        };
-
         defaultPackage = self.packages.${system}.${packageName};
 
         devShell = haskellPackages.shellFor {
