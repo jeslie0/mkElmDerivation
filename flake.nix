@@ -4,9 +4,10 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    nix-filter.url = "github:numtide/nix-filter";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, nix-filter }:
     { elmSrcsFunc = with builtins;
           elmJson:
           let
@@ -32,19 +33,26 @@
         haskellPackages = pkgs.haskellPackages;
         packageName = with builtins;
           let cabalFileName = head (filter
-            (name:
-              let len = builtins.stringLength name;
-              in len >= 6 && (substring (len - 6) 6 name == ".cabal"))
+            (name: pkgs.lib.hasSuffix ".cabal" name)
             (attrNames (readDir ./.)));
           in head (match "^.*name\:\ *([^[:space:]]*).*$" (readFile "${./.}\/${cabalFileName}"));
       in
       {
-        packages.${packageName} = haskellPackages.callCabal2nix packageName self { };
+        packages.${packageName} =
+          let src = nix-filter.lib.filter {
+                root = ./.;
+                include = [
+                  ./src
+                  ./lib
+                  (nix-filter.lib.matchExt "cabal")
+                ];
+              };
+          in haskellPackages.callCabal2nix packageName src { };
 
         defaultPackage = self.packages.${system}.${packageName};
 
         devShell = haskellPackages.shellFor {
-          packages = p: [ self.defaultPackage.${system} ]; # This automatically pulls cabal libraries into the devshell, so they can be used in ghci
+          packages = p: [ self.defaultPackage.${system} ];
           buildInputs = with haskellPackages;
             [
               ghc
