@@ -1,4 +1,4 @@
-* Revision history for HaskellNixTemplate
+#+title: Revision history for mkElmDerivation
 
 ** 0.1.0.0 -- YYYY-mm-dd
 

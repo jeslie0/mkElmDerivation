@@ -1,5 +1,5 @@
 {
-  description = "My Haskell project";
+  description = "A flake giving mkElmDerivation and a programme to fetch and hash Elm Packages.";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
