@@ -33,7 +33,9 @@ executable Main
                       base,
                       bytestring,
                       containers,
+                      directory,
                       cryptohash-sha256,
+                      deepseq,
                       http-conduit,
                       http-types,
                       mtl,
@@ -41,4 +43,4 @@ executable Main
                       threads-pool,
     hs-source-dirs:   src
     default-language: Haskell2010
-    ghc-options: -O2 -threaded
+    ghc-options: -O2 -threaded -ddump-to-file -ddump-simpl

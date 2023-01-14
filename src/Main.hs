@@ -1,17 +1,13 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 
-{-# HLINT ignore "Use if" #-}
-{-# HLINT ignore "Redundant section" #-}
-
-module Main (main) where
+module Main where
 
 import Control.Concurrent
 import Control.Concurrent.Pool
+import Control.DeepSeq
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Crypto.Hash.SHA256
@@ -27,6 +23,7 @@ import qualified Data.Text.Lazy.IO as TI
 import GHC.Generics
 import Network.HTTP.Simple
 import Network.HTTP.Types.Status
+import System.Directory
 import System.IO
 
 -- * Types
@@ -60,8 +57,8 @@ data ReadState = ReadState
 base :: FilePath
 base = "/home/james/"
 
-output :: FilePath
-output = base <> "elmNix2.json"
+output :: IO FilePath
+output = makeAbsolute "./elmData.json"
 
 failures :: FilePath
 failures = base <> "elmNixFailure.json"
@@ -74,7 +71,7 @@ remoteSrc = do
   resp <- httpLBS req
   let status = getResponseStatus resp
   if statusIsSuccessful status
-    then do
+    then
       return . decode . getResponseBody $ resp
     else do
       print "Could not fetch json file"
@@ -88,7 +85,8 @@ localSrc = do
 
 main :: IO ()
 main = do
-  handle <- openFile output ReadMode
+  outputPath <- output
+  handle <- openFile outputPath ReadWriteMode
   fileOkay <- (&&) <$> hIsOpen handle <*> hIsReadable handle
   case fileOkay of
     False -> print "Can't open File"
@@ -107,7 +105,8 @@ parsedJson :: M.Map Name Versions -> Handle -> IO ()
 parsedJson keyMap handle = do
   alreadyHashedM <- decode <$> B.hGetContents handle :: IO (Maybe (M.Map Name (M.Map Version Hash)))
   seq alreadyHashedM (return ())
-  newHandle <- openFile output WriteMode
+  outputPath <- output
+  newHandle <- openFile outputPath WriteMode
   case alreadyHashedM of
     Just alreadyHashed -> do
       let toHash = extractNewPackages keyMap alreadyHashed
@@ -155,7 +154,7 @@ keyMapToList keymap =
 
 makeLink :: T.Text -> Version -> T.Text
 makeLink name ver =
-  "https://github.com/" <> name <> "/archive/refs/tags/" <> ver <> ".tar.gz"
+  "https://github.com/" <> name <> "/archive/" <> ver <> ".tar.gz"
 
 -- * Hashing Functions
 
@@ -202,7 +201,7 @@ downloadElmPackage elmPkg = do
       liftIO $ modifyMVar_ failMvar (\ps -> return (elmPkg : ps))
     Just hash -> do
       -- Add to successful pkgs mvar
-      seq hash $ return ()
+      hash `deepseq` return ()
       liftIO $ modifyMVar_ sucMvar (return . addHashToMap elmPkg hash)
       liftIO $ modifyMVar_ countMvar (\n -> return $! n + 1)
 
@@ -222,22 +221,10 @@ downloadElmPackages pkgs = do
   state <- ask
   pool <- liftIO $ newPoolIO 100 False
   let elmPkgProcess rDld = runReaderT (downloadElmPackage rDld) state
-      downloadPackagesInPool = mapM_ ((\io -> queue pool io ()) . elmPkgProcess) pkgs
+      downloadPackagesInPool = mapM_ ((\io -> queue pool io ()) . elmPkgProcess) $ pkgs
   liftIO downloadPackagesInPool
   liftIO $ noMoreTasksIO pool
   liftIO $ waitForIO pool
-
--- * To Nix function
-
--- toNix :: FullElmPackage -> B.ByteString
--- toNix (FullElmPackage name ver hash) =
---   let nameString = encodeUtf8 name
---       verString = encodeUtf8 ver
---    in "    \"" <> nameString <> "\".\"" <> verString <> "\" = \"" <> hash <> "\";\n"
-
-foo :: FilePath -> IO (Maybe (M.Map Name (M.Map Version Hash)))
-foo path = decode <$> B.readFile path
-
 
 extractNewPackages :: (Ord a, Ord b) => M.Map a [b] -> M.Map a (M.Map b c) -> M.Map a [b]
 extractNewPackages =
