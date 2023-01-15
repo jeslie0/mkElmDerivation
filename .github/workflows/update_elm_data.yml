@@ -1,0 +1,42 @@
+name: Update Elm Data
+run-name: Updating elmData.json with newest packages
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  Update-Elm-Data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Setting up Checkout"
+        uses: actions/checkout@v3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Setting up Nix"
+        uses: cachix/install-nix-action@v18
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            trusted-public-keys = jeslie0.cachix.org-1:orKPykG+p5gEbLe/ETPIQdAbK5WtUl2C6CZ+aVn0dy8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            substituters = https://jeslie0.cachix.org https://cache.nixos.org/
+
+      - name: Update elmData.json
+        run: nix run
+
+      - name: Update registry.dat
+        uses: workflow/nix-shell-action@v3
+        with:
+          packages: elm2nix
+          script: |
+            elm2nix snapshot
+
+      - name: Commit and push changes
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "Update registry.dat and elmData.json"
+          git push
