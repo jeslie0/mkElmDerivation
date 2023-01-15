@@ -24,7 +24,7 @@ jobs:
             substituters = https://jeslie0.cachix.org https://cache.nixos.org/
 
       - name: Update elmData.json
-        run: nix run
+        run: nix run >> /dev/null
 
       - name: Update registry.dat
         uses: workflow/nix-shell-action@v3
