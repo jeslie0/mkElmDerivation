@@ -1,6 +1,6 @@
 cabal-version:      2.4
 name:               mkElmDerivation
-version:            0.0.1.0
+version:            0.1.0.0
 
 -- A short (one-line) description of the package.
 -- synopsis: A Nix Flake for simplifiying the packaging of Elm projects, based on elm2nix.
