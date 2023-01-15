@@ -23,8 +23,11 @@ jobs:
             trusted-public-keys = jeslie0.cachix.org-1:orKPykG+p5gEbLe/ETPIQdAbK5WtUl2C6CZ+aVn0dy8= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://jeslie0.cachix.org https://cache.nixos.org/
 
+      - name: Compile Haskell code with nix
+        run: nix build
+
       - name: Update elmData.json
-        run: nix run >> /dev/null
+        run: nix run
 
       - name: Update registry.dat
         uses: workflow/nix-shell-action@v3
@@ -38,5 +41,5 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -m "Update registry.dat and elmData.json"
+          git commit -m "[ghactions] Update registry.dat and elmData.json"
           git push
