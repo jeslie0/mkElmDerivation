@@ -136,7 +136,8 @@ go alreadyHashed toHash handle = do
 saveFailures :: ElmPackages -> IO ()
 saveFailures [] = print "No failures to save."
 saveFailures pkgs = do
-  handle <- openFile "/home/james/Documents/Projects/elmNix/failures" WriteMode
+  failuresFile <- failures
+  handle <- openFile failuresFile WriteMode
   fileOkay <- (&&) <$> hIsOpen handle <*> hIsWritable handle
   if fileOkay
     then do
