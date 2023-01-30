@@ -1,5 +1,13 @@
 #+title: Revision history for mkElmDerivation
 
-** 0.1.0.0 -- YYYY-mm-dd
+** 0.1.1.0 -- 2023-01-30
+- Refactor code to increase readability and modularity;
+- Half the heap memory usage;
+- Change hash function to one from Cryptonite;
+- Add report at the end of the programme;
+- Fix occasional deadlock with MVars.
+
+** 0.1.0.0 -- 2023-01-15
+- Initial Version
 
 * First version. Released on an unsuspecting world.
