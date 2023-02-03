@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedLists #-}
@@ -12,14 +13,9 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import qualified Crypto.Hash as C
 import Data.Aeson
-import Data.Bifunctor
-import Data.ByteString.Builder
-import qualified Data.ByteString.Internal as I
 import qualified Data.ByteString.Lazy as B
-import qualified Data.List as L
-import qualified Data.Map as M
-import qualified Data.Text.Lazy as T
-import Data.Text.Lazy.Encoding
+import qualified Data.Map.Strict as M
+import qualified Data.Text as T
 import qualified Data.Vector as V
 import GHC.Generics
 import Network.HTTP.Simple
@@ -145,9 +141,9 @@ hashElmPackage :: ElmPackage -> -- ^ The Elm package to hash.
 hashElmPackage elmPkg@(ElmPackage name ver) = do
   bytes <- downloadPackage elmPkg
   liftIO . print $ "Hashing: " <> name <> ": v" <> ver
-  let hash = prettyHash bytes
+  let !hash = prettyHash bytes
   liftIO . print $ "Hashed: " <> name <> ": v" <> ver
-  return $! hash
+  return hash
 
 -- | Download and hash the given elm package, adding the data to the
 -- MVars in the ReadState.
