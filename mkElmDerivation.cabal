@@ -17,7 +17,28 @@ author:             James Leslie
 maintainer:         jamesleslie@posteo.net
 
 extra-source-files: CHANGELOG.org
-
+library
+  hs-source-dirs:      lib
+  exposed-modules:     MkElmDerivation.Types
+                       MkElmDerivation.MapHelpers
+                       MkElmDerivation.GetPackages
+                       MkElmDerivation.Conduits
+  build-depends:       aeson,
+                       base,
+                       bytestring,
+                       conduit,
+                       conduit-extra,
+                       cryptonite,
+                       directory,
+                       hashable,
+                       http-conduit,
+                       http-types,
+                       mtl,
+                       text,
+                       threads-pool,
+                       transformers,
+                       unordered-containers,
+                       vector
 executable Main
     main-is:          Main.hs
 
@@ -29,12 +50,16 @@ executable Main
     build-depends:    aeson,
                       base,
                       bytestring,
-                      containers,
+                      unordered-containers,
                       cryptonite,
+                      conduit,
+                      conduit-extra,
                       directory,
+                      hashable,
                       http-conduit,
                       http-types,
                       mtl,
+                      mkElmDerivation,
                       text,
                       threads-pool,
                       transformers,
