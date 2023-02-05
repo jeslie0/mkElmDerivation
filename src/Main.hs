@@ -6,6 +6,7 @@ module Main where
 import Control.Exception
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
+import Data.Aeson
 import qualified Data.ByteString.Lazy as B
 import Data.Conduit
 import qualified Data.Conduit.Binary as BS
@@ -14,8 +15,6 @@ import qualified Data.Text as T
 import qualified Data.Vector as V
 import MkElmDerivation.Conduits
 import MkElmDerivation.Types
-import Data.Aeson
-
 
 -- * Main
 
@@ -24,12 +23,12 @@ main = runMaybeT $ do
   -- Use a conduit to get the (potentially non-existent) file of
   -- hashed packages.
   outputPath <- liftIO output
-  alreadyHashedPkgs <- liftIO . runConduitRes $ catchC (BS.sourceFile outputPath) (\(e :: IOException) -> liftIO $ print e) .| conduitOutputs
+  alreadyHashedPkgs <- liftIO . runConduitRes $ catchC (BS.sourceFile outputPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFile2Map
 
   -- Use a conduit to get the (potentially non-existent) file of
   -- failed packages.
   failuresPath <- liftIO failures
-  previousFailuresNVsMap <- liftIO . runConduitRes $ catchC (BS.sourceFile failuresPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFailures
+  previousFailuresNVsMap <- liftIO . runConduitRes $ catchC (BS.sourceFile failuresPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFile2Map
 
   -- The keymap obtained from downloading and parsing
   -- elm-packages.json.

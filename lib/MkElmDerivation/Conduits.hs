@@ -47,12 +47,6 @@ conduitFile2Map = helper ""
                 Just niceMap -> return niceMap
 
 
-conduitOutputs ::(Monad m, MonadIO m) => ConduitT B.ByteString Void m (M.HashMap Name (M.HashMap Version Hash))
-conduitOutputs = conduitFile2Map
-
-conduitFailures :: (Monad m, MonadIO m) => ConduitT B.ByteString Void m (M.HashMap Name Versions)
-conduitFailures = conduitFile2Map
-
 conduitSaveFailuresMap ::
   (Monad m) =>
   M.HashMap Name Versions ->
@@ -90,7 +84,7 @@ getNewPkgsToHash ::
   -- | All elm-packages.json.
   M.HashMap Name Versions ->
   IO (M.HashMap Name Versions)
-getNewPkgsToHash alreadyHashed failuresMap allPkgsMap = do
+getNewPkgsToHash alreadyHashed failuresMap allPkgsMap =
   return . removeFailedPkgs (extractNewPackages allPkgsMap alreadyHashed) $ failuresMap
 
 getFailuresSuccesses ::

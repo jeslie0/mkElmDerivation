@@ -36,12 +36,12 @@ prettyHash ::
 prettyHash bytes = T.pack . show $ (C.hashlazy bytes :: C.Digest C.SHA256)
 
 -- | Download the specified elm package into a bytestring.
-downloadPackage ::
+fetchPackageBytes ::
   -- | Elm package to download.
   ElmPackage ->
   -- | Package wrapped up as bytes.
   MaybeT IO B.ByteString
-downloadPackage (ElmPackage name ver) = do
+fetchPackageBytes (ElmPackage name ver) = do
   liftIO . print $ "Downloading " <> name <> ": v" <> ver <> "."
   req <- parseRequest . T.unpack $ makeLink name ver
   resp <- httpLBS req
@@ -54,19 +54,6 @@ downloadPackage (ElmPackage name ver) = do
       liftIO . print $ "Failed to fetch " <> name <> " " <> ver <> "."
       MaybeT . return $ Nothing
 
--- | Download and hash the given ElmPackage.
-hashElmPackage ::
-  -- | The Elm package to hash.
-  ElmPackage ->
-  -- | The wrapped up hash of the given package.
-  MaybeT IO Hash
-hashElmPackage elmPkg@(ElmPackage name ver) = do
-  bytes <- downloadPackage elmPkg
-  liftIO . print $ "Hashing: " <> name <> ": v" <> ver
-  let !hash = prettyHash bytes
-  liftIO . print $ "Hashed: " <> name <> ": v" <> ver
-  return hash
-
 -- | Download and hash the given elm package, adding the data to the
 -- MVars in the ReadState.
 downloadElmPackage ::
@@ -74,14 +61,15 @@ downloadElmPackage ::
   ElmPackage ->
   ReaderT ReadState IO ()
 downloadElmPackage elmPkg@(ElmPackage name ver) = do
+  bytesM <- liftIO . runMaybeT $ fetchPackageBytes elmPkg
+  let hashM = prettyHash <$> bytesM
   (ReadState sucMvar failMvar) <- ask
-  mHash <- liftIO . runMaybeT $ hashElmPackage elmPkg
-  case mHash of
+  case hashM of
     Nothing -> do
       -- Add to failed pkgs mvar
       failMap <- liftIO $ takeMVar failMvar
       liftIO $ putMVar failMvar (M.insertWith (<>) name [ver] failMap)
-    Just hash -> do
+    Just !hash -> do
       -- Add to successful pkgs mvar
       succMap <- liftIO $ takeMVar sucMvar
       liftIO $ putMVar sucMvar (addHashToMap elmPkg hash succMap)
@@ -98,7 +86,7 @@ downloadElmPackages pkgs = do
   pool <- liftIO $ newPoolIO 100 False
   let elmPkgProcess rDld = runReaderT (downloadElmPackage rDld) state
       runElmPkgProcess name vers = mapM_ ((\io -> queue pool io ()) . elmPkgProcess) $ ElmPackage name <$> vers
-      downloadPackagesInPool = mapMWithKey_ runElmPkgProcess pkgs
-  liftIO downloadPackagesInPool
+      fetchPackageBytessInPool = mapMWithKey_ runElmPkgProcess pkgs
+  liftIO fetchPackageBytessInPool
   liftIO $ noMoreTasksIO pool
   liftIO $ waitForIO pool

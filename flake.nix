@@ -54,15 +54,9 @@
         devShell = haskellPackages.shellFor {
           packages = p: [ self.defaultPackage.${system} ];
           buildInputs = with haskellPackages;
-            [
-              ghc
+            [ ghc
               haskell-language-server
               cabal-install
-              apply-refact
-              hlint
-              stylish-haskell
-              hasktags
-              hindent
             ];
 
           # Add build inputs of the following derivations.
