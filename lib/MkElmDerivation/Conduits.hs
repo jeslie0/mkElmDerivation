@@ -6,6 +6,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.Aeson
+import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Conduit.Binary as BS
 import qualified Data.HashMap.Strict as M
@@ -37,12 +38,12 @@ failures = makeAbsolute "./failures.json"
 conduitFile2Map :: (Monad m, FromJSON b, FromJSONKey a, Hashable a, MonadIO m) => ConduitT B.ByteString Void m (M.HashMap a b)
 conduitFile2Map = helper ""
   where
-    helper bytes = do
+    helper acc = do
         contentM <- await
         case contentM of
-            Just content -> helper $ bytes <> content
+            Just bytes -> helper $ acc <> (byteString bytes)
             Nothing -> do
-            case decodeStrict bytes of
+            case decode . toLazyByteString $ acc of
                 Nothing -> return M.empty
                 Just niceMap -> return niceMap
 
