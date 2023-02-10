@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module MkElmDerivation.Conduits where
 
 import qualified Control.Concurrent as Con
@@ -6,8 +7,10 @@ import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Control.Monad.Trans.Maybe
 import Data.Aeson
+import qualified Data.ByteString as B
 import Data.ByteString.Builder
 import qualified Data.ByteString.Lazy as BL
+import Data.Conduit
 import qualified Data.Conduit.Binary as BS
 import qualified Data.HashMap.Strict as M
 import Data.Hashable
@@ -21,12 +24,6 @@ import Network.HTTP.Simple
 import Network.HTTP.Types.Status
 import System.Directory
 
-
-import qualified Data.ByteString as B
-import Data.Conduit
-import Data.Conduit.Binary
-
-
 -- | The absolute path of the output file, to read and save successes.
 output :: IO FilePath
 output = makeAbsolute "./elmData.json"
@@ -39,14 +36,13 @@ conduitFile2Map :: (Monad m, FromJSON b, FromJSONKey a, Hashable a, MonadIO m) =
 conduitFile2Map = helper ""
   where
     helper acc = do
-        contentM <- await
-        case contentM of
-            Just bytes -> helper $ acc <> (byteString bytes)
-            Nothing -> do
-            case decode . toLazyByteString $ acc of
-                Nothing -> return M.empty
-                Just niceMap -> return niceMap
-
+      contentM <- await
+      case contentM of
+        Just bytes -> helper $ acc <> byteString bytes
+        Nothing -> do
+          case decode . toLazyByteString $ acc of
+            Nothing -> return M.empty
+            Just niceMap -> return niceMap
 
 conduitSaveFailuresMap ::
   (Monad m) =>

@@ -12,12 +12,13 @@ version:            0.1.1.0
 -- bug-reports: https://github.com/jeslie0/mkElmDerivation/issues
 
 -- The license under which the package is released.
--- license: MIT
+license: MIT
 author:             James Leslie
 maintainer:         jamesleslie@posteo.net
 
 extra-source-files: CHANGELOG.org
 library
+  default-language: Haskell2010
   hs-source-dirs:      lib
   exposed-modules:     MkElmDerivation.Types
                        MkElmDerivation.MapHelpers
@@ -33,6 +34,7 @@ library
                        hashable,
                        http-conduit,
                        http-types,
+                       memory,
                        mtl,
                        text,
                        threads-pool,
@@ -58,6 +60,7 @@ executable Main
                       hashable,
                       http-conduit,
                       http-types,
+                      memory,
                       mtl,
                       mkElmDerivation,
                       text,
@@ -66,4 +69,4 @@ executable Main
                       vector
     hs-source-dirs:   src
     default-language: Haskell2010
-    ghc-options: -O2 -threaded -rtsopts -eventlog -finfo-table-map -fdistinct-constructor-tables
+    ghc-options: -O2 -threaded

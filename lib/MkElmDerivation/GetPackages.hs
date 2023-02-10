@@ -4,17 +4,20 @@
 
 module MkElmDerivation.GetPackages where
 
+import Conduit
 import Control.Concurrent
 import Control.Concurrent.Pool
 import Control.Monad.Reader
-import Control.Monad.Trans.Maybe
+import Crypto.Hash
 import qualified Crypto.Hash as C
+import Data.ByteArray (ByteArrayAccess)
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as B
 import qualified Data.HashMap.Strict as M
 import qualified Data.Text as T
 import MkElmDerivation.MapHelpers
 import MkElmDerivation.Types
-import Network.HTTP.Simple
+import Network.HTTP.Conduit
 import Network.HTTP.Types.Status
 
 -- | Take a name and a version and output the link to download it
@@ -28,41 +31,39 @@ makeLink ::
 makeLink name ver =
   "https://github.com/" <> name <> "/archive/" <> ver <> ".tar.gz"
 
--- | Hash the given bytes and print it nicely.
-prettyHash ::
-  -- | SHA256 these bytes.
-  B.ByteString ->
-  Hash
-prettyHash bytes = T.pack . show $ (C.hashlazy bytes :: C.Digest C.SHA256)
+-- | A conduit sink to incrementally hash the input, returning the hash.
+hashConduit :: (HashAlgorithm a, Monad m, ByteArrayAccess i) => ConduitT i Void m (Digest a)
+hashConduit = go hashInit
+  where
+    go :: (Monad m, ByteArrayAccess i, HashAlgorithm a) => Context a -> ConduitT i Void m (Digest a)
+    go ctx = do
+      bytesM <- await
+      case bytesM of
+        Just bytes -> go $! hashUpdate ctx bytes
+        Nothing -> return $! hashFinalize ctx
 
--- | Download the specified elm package into a bytestring.
-fetchPackageBytes ::
-  -- | Elm package to download.
-  ElmPackage ->
-  -- | Package wrapped up as bytes.
-  MaybeT IO B.ByteString
-fetchPackageBytes (ElmPackage name ver) = do
-  liftIO . print $ "Downloading " <> name <> ": v" <> ver <> "."
-  req <- parseRequest . T.unpack $ makeLink name ver
-  resp <- httpLBS req
-  let status = getResponseStatus resp
-  if statusIsSuccessful status
+-- | Fetch and hash the given request in constant memory, using conduits.
+fetchAndHash :: (MonadResource m, Monad m) => Request -> Manager -> m (Maybe T.Text)
+fetchAndHash request manager = do
+  resp <- http request manager
+  if statusIsSuccessful . responseStatus $ resp
     then do
-      liftIO . print $ "Successfully downloaded " <> name <> "."
-      MaybeT . return . Just $ getResponseBody resp
-    else do
-      liftIO . print $ "Failed to fetch " <> name <> " " <> ver <> "."
-      MaybeT . return $ Nothing
+      let conduit = responseBody resp
+      digest <- runConduit $ conduit .| (hashConduit :: (Monad m) => ConduitT BS.ByteString Void m (Digest SHA256))
+      return . Just . T.pack . show $ digest
+    else return Nothing
 
 -- | Download and hash the given elm package, adding the data to the
 -- MVars in the ReadState.
 downloadElmPackage ::
+  -- | The http manager to be fed to the http function
+  Manager ->
   -- | The Elm package to operate on.
   ElmPackage ->
   ReaderT ReadState IO ()
-downloadElmPackage elmPkg@(ElmPackage name ver) = do
-  bytesM <- liftIO . runMaybeT $ fetchPackageBytes elmPkg
-  let hashM = prettyHash <$> bytesM
+downloadElmPackage manager elmPkg@(ElmPackage name ver) = do
+  request <- parseRequest . T.unpack $ makeLink name ver
+  hashM <- runResourceT $ fetchAndHash request manager
   (ReadState sucMvar failMvar) <- ask
   case hashM of
     Nothing -> do
@@ -83,8 +84,9 @@ downloadElmPackages ::
   ReaderT ReadState IO ()
 downloadElmPackages pkgs = do
   state <- ask
+  manager <- liftIO $ newManager tlsManagerSettings
   pool <- liftIO $ newPoolIO 100 False
-  let elmPkgProcess rDld = runReaderT (downloadElmPackage rDld) state
+  let elmPkgProcess rDld = runReaderT (downloadElmPackage manager rDld) state
       runElmPkgProcess name vers = mapM_ ((\io -> queue pool io ()) . elmPkgProcess) $ ElmPackage name <$> vers
       fetchPackageBytessInPool = mapMWithKey_ runElmPkgProcess pkgs
   liftIO fetchPackageBytessInPool

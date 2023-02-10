@@ -6,9 +6,8 @@ module Main where
 import Control.Exception
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
-import Data.Aeson
 import qualified Data.ByteString.Lazy as B
-import Data.Conduit
+import Conduit
 import qualified Data.Conduit.Binary as BS
 import qualified Data.HashMap.Strict as M
 import qualified Data.Text as T
