@@ -1,4 +1,8 @@
 #+title: Revision history for mkElmDerivation
+** 0.2.0.0 -- 2023-03-06
+- Refactor code into both an overlay and a flake;
+- BREAKING: Remove "nixpkgs" dependency in mkElmDerivation;
+- Run =elm make= with =--optimize= flag.
 
 ** 0.1.1.0 -- 2023-01-30
 - Refactor code to increase readability and modularity;
