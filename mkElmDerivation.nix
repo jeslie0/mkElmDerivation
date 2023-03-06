@@ -39,7 +39,7 @@ with builtins;
 
 # Optional: The output of elm2nix snapshot. There is a copy of this
 # file with this repository which is used by default.
-, registryDat ? ./registry.dat
+, registryDat ? ./mkElmDerivation/registry.dat
 
 # Optional: Should the outputted files by JavaScript or HTML?
 , outputJavaScript ? false

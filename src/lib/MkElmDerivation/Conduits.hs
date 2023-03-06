@@ -26,11 +26,11 @@ import System.Directory
 
 -- | The absolute path of the output file, to read and save successes.
 output :: IO FilePath
-output = makeAbsolute "./elmData.json"
+output = makeAbsolute "./mkElmDerivation/elm-hashes.json"
 
 -- | The absolute path of the failures file, to read and save failures.
 failures :: IO FilePath
-failures = makeAbsolute "./failures.json"
+failures = makeAbsolute "./mkElmDerivation/elm-failures.json"
 
 conduitFile2Map :: (Monad m, FromJSON b, FromJSONKey a, Hashable a, MonadIO m) => ConduitT B.ByteString Void m (M.HashMap a b)
 conduitFile2Map = helper ""
