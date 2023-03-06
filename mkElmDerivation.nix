@@ -1,5 +1,21 @@
-elmSrcsFunc:
+_: prev:
 with builtins;
+let elmSrcsFunc =
+      elmJson:
+      let
+        elmHashes = fromJSON (readFile ./mkElmDerivation/elm-hashes.json);
+        getHash = name: ver: elmHashes.${name}.${ver};
+        elmDepDir = (fromJSON (readFile elmJson)).dependencies.direct;
+        elmDepIndir = (fromJSON (readFile elmJson)).dependencies.indirect;
+        elmDepTestDir = (fromJSON (readFile elmJson)).test-dependencies.direct;
+        elmDepTestIndir = (fromJSON (readFile elmJson)).test-dependencies.indirect;
+        attrFunc = attr: mapAttrs (name: value: { sha256 = getHash name value; version = value; }) attr;
+      in
+        attrFunc elmDepDir //
+        attrFunc elmDepIndir //
+        attrFunc elmDepTestDir //
+        attrFunc elmDepTestIndir;
+in
 { # Optional: The name of the elm project. Read from "name" key in
   # elm.json if not specified.
   pname ? (fromJSON (readFile elmJson))."name"
@@ -7,10 +23,6 @@ with builtins;
 # Optional: The version of the elm projec. Read from "version" key in
 # elm.json if not specified.
 , version ? (fromJSON (readFile elmJson))."version"
-
-# The nixpkgs to use (typically of the form
-# nixpkgs.legacyPackages.${system}).
-, nixpkgs
 
 # The base directory of your elm project (most likely ./.).
 , src
@@ -45,11 +57,11 @@ with builtins;
 , outputJavaScript ? false
 }:
 
-with nixpkgs;
+with prev;
 stdenv.mkDerivation {
   inherit pname version src;
 
-  buildInputs = [ nixpkgs.elmPackages.elm ]
+  buildInputs = [ prev.elmPackages.elm ]
                 ++ lib.optional outputJavaScript nodePackages.uglify-js;
 
   buildPhase = pkgs.elmPackages.fetchElmDeps {
@@ -67,7 +79,7 @@ stdenv.mkDerivation {
          ${lib.optionalString outputJavaScript ''
           echo "minifying ${elmfile module}"
           uglifyjs $out/${module}.${extension} --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' \
-              | uglifyjs --mangle --output $out/${module}.min.${extension}
+          | uglifyjs --mangle --output $out/${module}.min.${extension}
       ''}
     '') targets)}
   '';
