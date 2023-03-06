@@ -38,12 +38,15 @@
           in head (match "^.*name\:\ *([^[:space:]]*).*$" (readFile "${haskellDir}\/${cabalFileName}"));
       in
       {
-        packages.${packageName} = haskellPackages.callCabal2nix packageName ./src { };
+        packages = {
+          default = self.packages.${system}.${packageName};
+          ${packageName} = haskellPackages.callCabal2nix packageName ./src { };
+        };
 
-        defaultPackage = self.packages.${system}.${packageName};
+        defaultPackage = self.packages.${system}.default;
 
         devShell = haskellPackages.shellFor {
-          packages = p: [ self.defaultPackage.${system} ];
+          packages = p: [ self.packages.${system}.default ];
           buildInputs = with haskellPackages;
             [ haskell-language-server
               cabal-install
