@@ -59,7 +59,7 @@ pkgs.stdenv.mkDerivation {
            elm make ${elmfile module} --optimize --output $out/${module}.${extension} --docs $out/share/doc/${module}.json
            ${pkgs.lib.optionalString outputJavaScript ''
             echo "minifying ${elmfile module}"
-            uglifyjs $out/${module}.${extension} --compress 'pure_funcs="F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9",pure_getters,keep_fargs=false,unsafe_comps,unsafe' \
+            uglifyjs $out/${module}.${extension}  --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' \
             | uglifyjs --mangle --output $out/${module}.min.${extension}
         ''}
       '') targets)}
