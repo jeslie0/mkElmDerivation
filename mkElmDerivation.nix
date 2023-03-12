@@ -1,10 +1,8 @@
 # This file is an overlay
 _: pkgs:
-{
-  # Optional: The name of the elm project. Read from "name" key in
+{ # Optional: The name of the elm project. Read from "name" key in
   # elm.json if not specified.
   pname ? with builtins; (fromJSON (readFile elmJson))."name"
-
 
   # Optional: The version of the elm projec. Read from "version" key in
   # elm.json if not specified.
