@@ -1,0 +1,28 @@
+cabal-version:      2.4
+name:               Snapshot
+
+version:            0.1.0.0
+author:             James Leslie
+maintainer:         jamesleslie@posteo.net
+
+executable Snapshot
+    main-is:          Snapshot.hs
+    build-depends: base
+                 , aeson
+                 , async
+                 , bytestring
+                 , binary
+                 , containers
+                 , data-default
+                 , directory
+                 , filepath
+                 , here
+                 , mtl
+                 , process
+                 , req
+                 , text
+                 , transformers
+                 , unordered-containers
+    hs-source-dirs:   src
+    default-language: Haskell2010
+    ghc-options: -main-is Snapshot -O2 -threaded

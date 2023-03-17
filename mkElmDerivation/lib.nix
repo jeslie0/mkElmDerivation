@@ -1,10 +1,14 @@
-pkgs:
+{self, system}:
+final:
+prev:
 rec {
   # Given a JSON of elm package hashes, an elm package name, and
   # version, return the derivation for the fetched packages.
-  fetchElmPkg = elmHashesJson: name: version: pkgs.stdenv.mkDerivation {
+  fetchElmPkg = elmHashesJson: name: version:
+prev.stdenv.mkDerivation {
     unformattedName = name;
-    pname = pkgs.lib.replaceStrings [ "/" ] [ "-" ] name;
+    pname =
+prev.lib.replaceStrings [ "/" ] [ "-" ] name;
     version = version;
     src = with builtins; fetchurl {
       url = "https://github.com/${name}/archive/${version}.tar.gz";
@@ -25,7 +29,8 @@ rec {
         (fromJSON (readFile elmJson)).dependencies.indirect //
         (fromJSON (readFile elmJson)).test-dependencies.direct //
         (fromJSON (readFile elmJson)).test-dependencies.indirect;
-      derivationList = pkgs.lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies;
+      derivationList =
+prev.lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies;
       elmVersion = (fromJSON (readFile elmJson))."elm-version";
       commandsList = builtins.map
         (pkg: ''
@@ -34,10 +39,13 @@ rec {
         '')
         derivationList;
     in
-    (pkgs.lib.concatStrings commandsList) + ''
+    (
+prev.lib.concatStrings commandsList) + ''
       export ELM_HOME=`pwd`/.elm
       mkdir -p .elm/${elmVersion}/packages;
-      cp ${./registry.dat} .elm/${elmVersion}/packages/registry.dat;
+      cp ${self}/mkElmDerivation/all-packages.json ./all-packages.json
+      ${final.buildRegistryPackages.${system}.snapshot}/bin/Snapshot
+      mv ./registry.dat .elm/${elmVersion}/packages/registry.dat;
       chmod -R +w .elm;
     '';
 

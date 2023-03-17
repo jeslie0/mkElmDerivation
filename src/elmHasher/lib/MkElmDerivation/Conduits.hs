@@ -68,7 +68,10 @@ remoteSrc = do
   resp <- httpLBS req
   let status = getResponseStatus resp
   if statusIsSuccessful status
-    then MaybeT . return . decode . getResponseBody $ resp
+    then do
+    let body = getResponseBody resp
+    liftIO $ BL.writeFile "./mkElmDerivation/all-packages.json" body
+    MaybeT . return . decode $ body
     else do
       liftIO $ print "Could not fetch json file"
       MaybeT . return $ Nothing

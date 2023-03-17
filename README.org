@@ -1,7 +1,7 @@
 #+title: mkElmDerivation
 This project is an attempt to provide a way to package elm applications with nix, with less user input required than the standard [[https://github.com/cachix/elm2nix][elm2nix]]. This project is based heavily on elm2nix and wouldn't be possible without it. There should be no need to generate any nix files using elm2nix, and no updates required when installing a new elm package. The nix expression is generated on the fly from the given =elm.json= file.
 
-The flake provides both an overlay and an output containing the function =mkElmDerivation=, which will build an elm project. The function takes the following attribute set as an input:
+The flake provides an overlay containing the function =mkElmDerivation=, which will build an elm project. The function takes the following attribute set as an input:
 
 #+begin_src nix
 { # Optional: The name of the elm project. Read from "name" key in
@@ -59,7 +59,7 @@ Here are examples uses of the overlay and output function:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlay ];
+        overlays = [ mkElmDerivation.overlay.${system} ];
         inherit system;
       };
       elmPackages = pkgs.elmPackages;
@@ -75,34 +75,5 @@ Here are examples uses of the overlay and output function:
       };
 }
 #+end_src
-
-#+name: Output function example
-#+begin_src nix
-# flake.nix
-{
-  description = "An elm derivation using the mkElmDerivation output function.";
-
-  inputs = {
-    nixpkgs.url = github:nixos/nixpkgs/nixos-unstable;
-    mkElmDerivation.url = github:jeslie0/mkElmDerivation;
-  };
-
-  outputs = { self, nixpkgs, mkElmDerivation }:
-  let
-    system = "x86_64-linux";
-    pkgs = nixpkgs.legacyPackages.${system};
-    elmPackages = pkgs.elmPackages;
-  in
-  {
-    packages.${system}.default = mkElmDerivation.mkElmDerivation.${system} {
-      pname = "elm-app";
-      version = "0.1.0";
-      src = ./.;
-      outputJavaScript = true;
-    };
-  };
-}
-#+end_src
-
 
 Note that this project is in alpha and there may be breaking changes in the future.

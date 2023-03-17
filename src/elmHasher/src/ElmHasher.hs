@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Main where
+module ElmHasher where
 
 import Control.Exception
 import Control.Monad.IO.Class

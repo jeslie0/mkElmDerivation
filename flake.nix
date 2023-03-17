@@ -7,38 +7,30 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    {
-      overlay = final: prev: { mkElmDerivation =  import ./mkElmDerivation.nix final prev; };
-    } //
     flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
         haskellPackages = pkgs.haskellPackages;
-        packageName = with builtins;
-          let haskellDir = ./src;
-              cabalFileName = head (filter
-                (name: pkgs.lib.hasSuffix ".cabal" name)
-                (attrNames (readDir haskellDir)));
-          in head (match "^.*name\:\ *([^[:space:]]*).*$" (readFile "${haskellDir}\/${cabalFileName}"));
       in
         {
+          overlay = final: prev: { mkElmDerivation = import ./mkElmDerivation.nix { inherit self system; } final prev;
+                                   buildRegistryPackages = self.packages; };
 
           packages = {
-            default = self.packages.${system}.${packageName};
-            ${packageName} = haskellPackages.callCabal2nix packageName ./src { };
+            default = self.packages.${system}.elmHasher;
+            elmHasher = haskellPackages.callCabal2nix "elmHasher" ./src/elmHasher { };
+            snapshot = haskellPackages.callCabal2nix "snapshot" ./src/snapshot { };
           };
 
           defaultPackage = self.packages.${system}.default;
 
-          mkElmDerivation = import ./mkElmDerivation.nix null pkgs;
-
           devShell = haskellPackages.shellFor {
-            packages = p: [ self.packages.${system}.default ];
+            packages = p: [ self.packages.${system}.elmHasher
+                            self.packages.${system}.snapshot ];
             buildInputs = with haskellPackages;
               [ haskell-language-server
-                cabal-install
-              ];
+                cabal-install ];
 
             # Enables Hoogle for the builtin packages.
             withHoogle = true;

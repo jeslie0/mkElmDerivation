@@ -1,5 +1,5 @@
 # This file is an overlay
-_: pkgs:
+{self, system}: final: prev:
 { # Optional: The name of the elm project. Read from "name" key in
   # elm.json if not specified.
   pname ? with builtins; (fromJSON (readFile elmJson))."name"
@@ -37,13 +37,13 @@ _: pkgs:
 , outputJavaScript ? false
 }:
 
-pkgs.stdenv.mkDerivation {
+prev.stdenv.mkDerivation {
   inherit pname version src;
 
-  buildInputs = [ pkgs.elmPackages.elm ]
-    ++ pkgs.lib.optional outputJavaScript pkgs.nodePackages.uglify-js;
+  buildInputs = [ prev.elmPackages.elm ]
+    ++ prev.lib.optional outputJavaScript prev.nodePackages.uglify-js;
 
-  buildPhase = (import ./mkElmDerivation/lib.nix pkgs).mkDotElmCommand ./mkElmDerivation/elm-hashes.json elmJson;
+  buildPhase = (import ./mkElmDerivation/lib.nix { inherit self system; } final prev).mkDotElmCommand ./mkElmDerivation/elm-hashes.json elmJson;
 
   installPhase =
     let
@@ -52,10 +52,10 @@ pkgs.stdenv.mkDerivation {
     in
     ''
          mkdir -p $out/share/doc
-         ${pkgs.lib.concatStrings (map (module: ''
+         ${prev.lib.concatStrings (map (module: ''
            echo "compiling ${elmfile module}"
            elm make ${elmfile module} --optimize --output $out/${module}.${extension} --docs $out/share/doc/${module}.json
-           ${pkgs.lib.optionalString outputJavaScript ''
+           ${prev.lib.optionalString outputJavaScript ''
             echo "minifying ${elmfile module}"
             uglifyjs $out/${module}.${extension}  --compress 'pure_funcs=[F2,F3,F4,F5,F6,F7,F8,F9,A2,A3,A4,A5,A6,A7,A8,A9],pure_getters,keep_fargs=false,unsafe_comps,unsafe' \
             | uglifyjs --mangle --output $out/${module}.min.${extension}
