@@ -26,20 +26,13 @@ jobs:
       - name: Compile Haskell code with nix
         run: nix build
 
-      - name: Update elmData.json
+      - name: Update elm-hashes.json, elm-failures.json and all-packages.json
         run: nix run
-
-      - name: Update registry.dat
-        uses: workflow/nix-shell-action@v3
-        with:
-          packages: elm2nix
-          script: |
-            elm2nix snapshot
 
       - name: Commit and push changes
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -m "[ghactions] Update registry.dat and elmData.json"
+          git commit -m "[ghactions] Update elm-hashes, elm-failures and all-packages"
           git push
