@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {- This code is mostly taken from elm2nix, with some of my own
 modifications to integrate it into this project. As such, I need to
 provide a copy of elm2nix's license.
@@ -36,6 +35,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 
 module Snapshot where
 
@@ -53,10 +54,8 @@ import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
-import Data.Text.IO as TI
 import Data.Word (Word16)
-import System.Directory
-import System.FilePath ((</>))
+import System.Directory ( makeAbsolute )
 
 data Name = Name
   { _author :: !Text,
