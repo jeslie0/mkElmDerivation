@@ -2,11 +2,12 @@ cabal-version:      2.4
 name:               elmHasher
 version:            0.2.0.0
 
--- A short (one-line) description of the package.
--- synopsis: A Nix Flake for simplifiying the packaging of Elm projects, based on elm2nix.
 
--- A longer description of the package.
--- description:
+description: This package is used by a GitHub action to fetch a JSON
+             of all Elm packages, then download and hash them all.
+             It updates several JSONs with this data, allowing for
+             the nix expression mkElmDerivation to build without
+             knowing the user needing change anything.
 
 -- A URL where users can report bugs.
 -- bug-reports: https://github.com/jeslie0/mkElmDerivation/issues

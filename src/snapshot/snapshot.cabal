@@ -1,6 +1,11 @@
 cabal-version:      2.4
 name:               Snapshot
 
+description:        This package is mostly taken from elm2nix, with some
+                    minor modifications. It is used by the nix expression mkElmDerivation
+                    to build the binary blob registry.dat, which is then allows Elm to
+                    function properly.
+             
 version:            0.1.0.0
 author:             James Leslie
 maintainer:         jamesleslie@posteo.net
