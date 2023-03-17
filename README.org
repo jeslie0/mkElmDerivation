@@ -42,7 +42,7 @@ The flake provides an overlay containing the function =mkElmDerivation=, which w
 }
 #+end_src
 
-Here are examples uses of the overlay and output function:
+Here is an example that uses the overlay:
 
 #+name: Overlay example
 #+begin_src nix
@@ -71,9 +71,6 @@ Here are examples uses of the overlay and output function:
           src = ./.;
           outputJavaScript = true;
         };
-
       };
 }
 #+end_src
-
-Note that this project is in alpha and there may be breaking changes in the future.
