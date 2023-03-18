@@ -19,8 +19,15 @@
 
           packages = {
             default = self.packages.${system}.elmHasher;
-            elmHasher = haskellPackages.callCabal2nix "elmHasher" ./src/elmHasher { };
-            snapshot = haskellPackages.callCabal2nix "snapshot" ./src/snapshot { };
+            elmHasher = import ./src/elmHasher/default.nix (haskellPackages // { lib = pkgs.lib; });
+            snapshot = import ./src/snapshot/default.nix (haskellPackages // { lib = pkgs.lib; });
+
+            # These require IFD. Use these for development, but not
+            # for release. Run cabal2nix manually to update the
+            # default.nix files. One needs to add ellipses to the
+            # input attribute set in both these files.
+            # elmHasher = haskellPackages.callCabal2nix "elmHasher" ./src/elmHasher { };
+            # snapshot = haskellPackages.callCabal2nix "snapshot" ./src/snapshot { };
           };
 
           defaultPackage = self.packages.${system}.default;
