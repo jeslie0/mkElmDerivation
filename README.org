@@ -4,13 +4,11 @@ This project is an attempt to provide a way to package elm applications with nix
 The flake provides an overlay containing the function =mkElmDerivation=, which will build an elm project. The function takes the following attribute set as an input:
 
 #+begin_src nix
-{ # Optional: The name of the elm project. Read from "name" key in
-  # elm.json if not specified.
-  pname ? with builtins; (fromJSON (readFile elmJson))."name"
+{ # The name of the elm project.
+  pname
 
-  # Optional: The version of the elm projec. Read from "version" key in
-  # elm.json if not specified.
-, version ? with builtins; (fromJSON (readFile elmJson))."version"
+  # The version of the elm project.
+, version
 
   # The base directory of your elm project (most likely ./.).
 , src
@@ -74,3 +72,5 @@ Here is an example that uses the overlay:
       };
 }
 #+end_src
+* Versions
+This project currently supports version 0.19.1 of Elm.

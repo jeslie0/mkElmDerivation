@@ -1,12 +1,10 @@
 # This file is an overlay
 {self, system}: final: prev:
-{ # Optional: The name of the elm project. Read from "name" key in
-  # elm.json if not specified.
-  pname ? with builtins; (fromJSON (readFile elmJson))."name"
+{ # The name of the elm project.
+  pname
 
-  # Optional: The version of the elm projec. Read from "version" key in
-  # elm.json if not specified.
-, version ? with builtins; (fromJSON (readFile elmJson))."version"
+  # The version of the elm project.
+, version
 
   # The base directory of your elm project (most likely ./.).
 , src
