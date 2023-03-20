@@ -1,8 +1,6 @@
 name: Update Elm Data
 run-name: Updating elmData.json with newest packages
 on:
-  push:
-    branches: [ main ]
   schedule:
     - cron: '0 0 * * 0'
 

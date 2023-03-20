@@ -66,3 +66,5 @@ Here is an example that uses the overlay:
 #+end_src
 * Versions
 This project currently supports version 0.19.1 of Elm.
+* Updates
+Currently, a GitHub action is set to run at 0000 every Sunday. This will update the three JSON files stored in the [[file:mkElmDerivation/][mkElmDerivation directory]].
