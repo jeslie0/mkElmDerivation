@@ -63,6 +63,8 @@ Here is an example that uses the overlay:
       };
 }
 #+end_src
+
+Note that the =mkElmDerivation= function passes all of its arguments into a =nixpkgs.stdenv.mkDerivation= function. This means that you can pass any attribute that you normally can when making a derivation; however, providing a =buildPhase= or =installPhase= will not affect the derivation.
 * Versions
 This project currently supports version 0.19.1 of Elm.
 * mkElmSpaDerivation
@@ -94,5 +96,7 @@ There is also an overlay providing a function =mkElmSpaDerivation=. This provide
       };
 }
 #+end_src
+
+Similarly to =mkElmDerivation=, =mkElmSpaDerivation= passes its arguments into a =nixpkgs.stdenv.mkDerivation= function. Both =buildPhase= and =installPhase= can't be updated in this way.
 * Updates
 Currently, a GitHub action is set to run at 0000 every Sunday. This will update the three JSON files stored in the [[file:mkElmDerivation/][mkElmDerivation directory]].

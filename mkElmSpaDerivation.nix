@@ -12,9 +12,10 @@
   # Optional: The elm projects elm.json file. Will default to
   # ${src}/elm.json
 , elmJson ? "${src}/elm.json"
-}:
+, ...
+} @ args:
 
-prev.stdenv.mkDerivation {
+prev.stdenv.mkDerivation (args // {
   inherit pname version src;
 
   buildInputs = [ prev.elmPackages.elm
@@ -29,4 +30,4 @@ prev.stdenv.mkDerivation {
     mkdir $out
     cp -r public/* $out
     '';
-}
+})

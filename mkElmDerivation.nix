@@ -25,9 +25,10 @@
 
   # Optional: Should the outputted files be JavaScript or HTML?
 , outputJavaScript ? false
-}:
+, ...
+} @ args:
 
-prev.stdenv.mkDerivation {
+prev.stdenv.mkDerivation (args // {
   inherit pname version src;
 
   buildInputs = [ prev.elmPackages.elm ]
@@ -52,4 +53,4 @@ prev.stdenv.mkDerivation {
         ''}
       '') targets)}
     '';
-}
+})
