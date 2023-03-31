@@ -1,12 +1,17 @@
 {
-  description = "A flake giving mkElmDerivation and a programme to fetch and hash Elm Packages.";
+  description = "A flake containing useful tools for building Elm applications with Nix.";
 
   inputs = {
     nixpkgs.url = github:nixos/nixpkgs/nixpkgs-unstable;
     flake-utils.url = github:numtide/flake-utils;
+    elm-spa = {
+      url = github:jeslie0/elm-spa;
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, elm-spa }:
     flake-utils.lib.eachDefaultSystem (
       system:
       let
@@ -14,8 +19,20 @@
         haskellPackages = pkgs.haskellPackages;
       in
         {
-          overlay = final: prev: { mkElmDerivation = import ./mkElmDerivation.nix { inherit self system; } final prev;
-                                   buildRegistryPackages = self.packages; };
+          overlay = builtins.trace "\"mkElmDerivation.overlay.${system}.overlay\" has been deprecated. Please use \"mkElmDerivation.overlays.${system}.default\" instead." self.overlays.${system}.default;
+
+          overlays = {
+            default = self.overlays.${system}.mkElmDerivation;
+            mkElmDerivation = final: prev: {
+              mkElmDerivation = import ./mkElmDerivation.nix { inherit self system; } final prev;
+              buildRegistryPackages = self.packages;
+            };
+            mkElmSpaDerivation = final: prev: {
+              mkElmSpaDerivation = import ./mkElmSpaDerivation.nix { inherit self system; } final prev;
+              elmPackages.elm-spa = elm-spa.packages.${system}.default;
+              buildRegistryPackages = self.packages;
+            };
+          };
 
           packages = {
             default = self.packages.${system}.elmHasher;
@@ -30,7 +47,7 @@
             # snapshot = haskellPackages.callCabal2nix "snapshot" ./src/snapshot { };
           };
 
-          defaultPackage = self.packages.${system}.default;
+          defaultPackage = builtins.trace "defaultPackage has been deprecated. Please use packages.default." self.packages.${system}.default;
 
           devShell = haskellPackages.shellFor {
             packages = p: [ self.packages.${system}.elmHasher

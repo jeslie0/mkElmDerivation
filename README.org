@@ -65,5 +65,34 @@ Here is an example that uses the overlay:
 #+end_src
 * Versions
 This project currently supports version 0.19.1 of Elm.
+* mkElmSpaDerivation
+There is also an overlay providing a function =mkElmSpaDerivation=. This provides a nice mechanism to use nix to build an elm application made with [[https://www.elm-spa.dev/][elm-spa]]. Here is an example flake demonstrating how to use this overlay:
+#+begin_src nix
+# flake.nix
+{
+  description = "An elm-spa application, packaged with the mkElmSpaDerivation overlay.";
+
+  inputs = {
+    nixpkgs.url = github:nixos/nixpkgs/nixpkgs-unstable;
+    mkElmDerivation.url = github:jeslie0/mkElmDerivation;
+  };
+
+  outputs = { self, nixpkgs, mkElmDerivation }:
+    let
+      system = "x86_64-linux";
+      pkgs = import nixpkgs {
+        overlays = [ mkElmDerivation.overlays.${system}.mkElmSpaDerivation ];
+        inherit system;
+      };
+    in
+      {
+        packages.${system}.default = pkgs.mkElmSpaDerivation {
+          pname = "elm-spa-app";
+          version = "0.1.0";
+          src = ./.;
+        };
+      };
+}
+#+end_src
 * Updates
 Currently, a GitHub action is set to run at 0000 every Sunday. This will update the three JSON files stored in the [[file:mkElmDerivation/][mkElmDerivation directory]].

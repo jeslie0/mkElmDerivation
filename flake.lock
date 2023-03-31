@@ -1,5 +1,28 @@
 {
   "nodes": {
+    "elm-spa": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1680291613,
+        "narHash": "sha256-Q37xf/6u762vk5L9Q4hqLCK3s3/2RH8JdWP7b/8RyyU=",
+        "owner": "jeslie0",
+        "repo": "elm-spa",
+        "rev": "59bd4f8e5773bbe9e5d58c1205c5695f4be20fc9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeslie0",
+        "repo": "elm-spa",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1667395993,
@@ -33,6 +56,7 @@
     },
     "root": {
       "inputs": {
+        "elm-spa": "elm-spa",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
       }
