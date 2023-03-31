@@ -38,6 +38,12 @@
             default = self.packages.${system}.elmHasher;
             elmHasher = import ./src/elmHasher/default.nix (haskellPackages // { lib = pkgs.lib; });
             snapshot = import ./src/snapshot/default.nix (haskellPackages // { lib = pkgs.lib; });
+            elmHashes = pkgs.stdenvNoCC.mkDerivation {
+              name = "elmHashes";
+              src = ./mkElmDerivation;
+              installPhase = "mkdir $out; cp elm-hashes.json $out";
+              meta.description = "A JSON of elm packages and their hashes.";
+            };
 
             # These require IFD. Use these for development, but not
             # for release. Run cabal2nix manually to update the
