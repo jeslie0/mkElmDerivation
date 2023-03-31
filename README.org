@@ -49,7 +49,7 @@ Here is an example that uses the overlay:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlay.${system} ];
+        overlays = [ mkElmDerivation.overlays.${system}.default ];
         inherit system;
       };
     in
