@@ -52,7 +52,6 @@ Here is an example that uses the overlay:
         overlays = [ mkElmDerivation.overlay.${system} ];
         inherit system;
       };
-      elmPackages = pkgs.elmPackages;
     in
       {
         packages.${system}.default = pkgs.mkElmDerivation {
