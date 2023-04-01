@@ -1,11 +1,11 @@
-name: Update Elm Data
-run-name: Updating elmData.json with newest packages
+name: Update JSON Data
+run-name: Updating all-packages, elm-failures and elm-hashes JSONs with newest packages
 on:
   schedule:
     - cron: '0 0 * * 0'
 
 jobs:
-  Update-Elm-Data:
+  Update-JSON-Data:
     runs-on: ubuntu-latest
     steps:
       - name: "Setting up Checkout"
@@ -32,5 +32,5 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add .
-          git commit -m "[ghactions] Update elm-hashes, elm-failures and all-packages"
+          git commit -m "[ghactions] Update elm-hashes, elm-failures and all-packages JSONs"
           git push
