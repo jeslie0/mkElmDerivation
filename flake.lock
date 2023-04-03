@@ -10,11 +10,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1680291613,
-        "narHash": "sha256-Q37xf/6u762vk5L9Q4hqLCK3s3/2RH8JdWP7b/8RyyU=",
+        "lastModified": 1680551213,
+        "narHash": "sha256-Sjrb0dwsEhSBqnylFl/dGThiR16QdrjEw3+bRdRTi5M=",
         "owner": "jeslie0",
         "repo": "elm-spa",
-        "rev": "59bd4f8e5773bbe9e5d58c1205c5695f4be20fc9",
+        "rev": "cc3a5921367df5fd2c29397c7c51b559a5b784f2",
         "type": "github"
       },
       "original": {
