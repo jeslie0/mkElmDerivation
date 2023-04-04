@@ -17,6 +17,8 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         haskellPackages = pkgs.haskellPackages;
+        allPackagesJsonPath = ./mkElmDerivation/all-packages.json;
+        elmHashesJsonPath = ./mkElmDerivation/elm-hashes.json;
       in
         {
           overlay = builtins.trace "\"mkElmDerivation.overlay.${system}.overlay\" has been deprecated. Please use \"mkElmDerivation.overlays.${system}.default\" instead." self.overlays.${system}.default;
@@ -24,13 +26,20 @@
           overlays = {
             default = self.overlays.${system}.mkElmDerivation;
             mkElmDerivation = final: prev: {
-              mkElmDerivation = import ./mkElmDerivation.nix { inherit self system; } final prev;
-              buildRegistryPackages = self.packages;
+              mkElmDerivation = with pkgs;
+                import ./nix/mkElmDerivation.nix { inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
+                                                   elm = elmPackages.elm;
+                                                   uglify-js = nodePackages.uglify-js;
+                                                   snapshot = self.packages.${system}.snapshot;
+                                                 };
             };
             mkElmSpaDerivation = final: prev: {
-              mkElmSpaDerivation = import ./mkElmSpaDerivation.nix { inherit self system; } final prev;
-              elmPackages.elm-spa = elm-spa.packages.${system}.default;
-              buildRegistryPackages = self.packages;
+              mkElmSpaDerivation = with pkgs;
+                import ./nix/mkElmSpaDerivation.nix { inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
+                                                      elm = elmPackages.elm;
+                                                      elm-spa = elm-spa.packages.${system}.elmSpa;
+                                                      snapshot = self.packages.${system}.snapshot;
+                                                    };
             };
           };
 
