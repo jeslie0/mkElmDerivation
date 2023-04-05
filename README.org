@@ -49,7 +49,7 @@ Here is an example that uses the overlay:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlays.${system}.default ];
+        overlays = [ mkElmDerivation.overlays.mkElmDerivation ];
         inherit system;
       };
     in
@@ -65,6 +65,8 @@ Here is an example that uses the overlay:
 #+end_src
 
 Note that the =mkElmDerivation= function passes all of its arguments into a =nixpkgs.stdenv.mkDerivation= function. This means that you can pass any attribute that you normally can when making a derivation; however, providing a =buildPhase= or =installPhase= will not affect the derivation.
+
+The =default= overlay is an overlay formed from the union of the over overlays provided by the flake.
 * Versions
 This project currently supports version 0.19.1 of Elm.
 * mkElmSpaDerivation
@@ -83,7 +85,7 @@ There is also an overlay providing a function =mkElmSpaDerivation=. This provide
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlays.${system}.mkElmSpaDerivation ];
+        overlays = [ mkElmDerivation.overlays.mkElmSpaDerivation ];
         inherit system;
       };
     in

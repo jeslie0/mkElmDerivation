@@ -1,4 +1,8 @@
 #+title: Revision history for mkElmDerivation
+
+** 0.5.0(PRE)
+- (BREAKING) Remove ${system} from the overlays. This breaking change simplifies the overlay usage, and is arguably more correct than the previous approach.
+- Tidy up and organise the nix files.
 ** 0.4.0 -- 2023-03-31
 - Add =mkElmSpaDerivation= function for building elm-spa apps;
 - Add ability to pass arguments to the mkDerivation call;
