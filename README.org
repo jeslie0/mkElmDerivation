@@ -1,114 +1,14 @@
 #+title: mkElmDerivation
 This project is an attempt to provide a way to package elm applications with nix, with less user input required than the standard [[https://github.com/cachix/elm2nix][elm2nix]]. This project is based heavily on elm2nix and wouldn't be possible without it. There should be no need to generate any nix files using elm2nix, and no updates required when installing a new elm package. The nix expression is generated on the fly from the given =elm.json= file.
 
-The flake provides an overlay containing the function =mkElmDerivation=, which will build an elm project. The function takes the following attribute set as an input:
+Details on how to use the flake can be found in the wiki.
 
-#+begin_src nix
-{ # The name of the elm project.
-  pname
+Support is provided for the following:
+- Ordinary elm projects;
+- elm-spa applications;
+- Creating =.elm= directories.
 
-  # The version of the elm project.
-, version
-
-  # The base directory of your elm project (most likely ./.).
-, src
-
-  # Optional: The elm projects elm.json file. Will default to
-  # ${src}/elm.json
-, elmJson ? "${src}/elm.json"
-
-  # Optional: The directory containing the .elm files to
-  # compile. Currently, we only support using one directory.
-, srcdir ? with builtins; "${src}/${head ((fromJSON (readFile elmJson))."source-directories")}"
-
-  # Optional: The version of elm used. Read from elm.json file.
-, elmVersion ? with builtins; (fromJSON (readFile elmJson))."elm-version"
-
-  # Optional: The files in srcdir to compile.
-, targets ? [ "Main" ]
-
-  # Optional: Should the outputted files be JavaScript or HTML?
-, outputJavaScript ? false
-}
-#+end_src
-
-Here is an example that uses the overlay:
-
-#+name: Overlay example
-#+begin_src nix
-# flake.nix
-{
-  description = "An elm derivation using the mkElmDerivation overlay.";
-
-  inputs = {
-    nixpkgs.url = github:nixos/nixpkgs/nixos-unstable;
-    mkElmDerivation.url = github:jeslie0/mkElmDerivation;
-  };
-
-  outputs = { self, nixpkgs, mkElmDerivation }:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlays.mkElmDerivation ];
-        inherit system;
-      };
-    in
-      {
-        packages.${system}.default = pkgs.mkElmDerivation {
-          pname = "elm-app";
-          version = "0.1.0";
-          src = ./.;
-          outputJavaScript = true;
-        };
-      };
-}
-#+end_src
-
-Note that the =mkElmDerivation= function passes all of its arguments into a =nixpkgs.stdenv.mkDerivation= function. This means that you can pass any attribute that you normally can when making a derivation; however, providing a =buildPhase= or =installPhase= will not affect the derivation.
-
-The =default= overlay is an overlay formed from the union of the over overlays provided by the flake.
 * Versions
 This project currently supports version 0.19.1 of Elm.
-* mkElmSpaDerivation
-There is also an overlay providing a function =mkElmSpaDerivation=. This provides a nice mechanism to use nix to build an elm application made with [[https://www.elm-spa.dev/][elm-spa]]. Here is an example flake demonstrating how to use this overlay:
-#+begin_src nix
-# flake.nix
-{
-  description = "An elm-spa application, packaged with the mkElmSpaDerivation overlay.";
-
-  inputs = {
-    nixpkgs.url = github:nixos/nixpkgs/nixpkgs-unstable;
-    mkElmDerivation.url = github:jeslie0/mkElmDerivation;
-  };
-
-  outputs = { self, nixpkgs, mkElmDerivation }:
-    let
-      system = "x86_64-linux";
-      pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlays.mkElmSpaDerivation ];
-        inherit system;
-      };
-    in
-      {
-        packages.${system}.default = pkgs.mkElmSpaDerivation {
-          pname = "elm-spa-app";
-          version = "0.1.0";
-          src = ./.;
-        };
-      };
-}
-#+end_src
-
-Similarly to =mkElmDerivation=, =mkElmSpaDerivation= passes its arguments into a =nixpkgs.stdenv.mkDerivation= function. Both =buildPhase= and =installPhase= can't be updated in this way.
-* mkDotElmDirectoryCmd
-This flake also exposes the functionality to make the =.elm= directory, in the overlay =mkDotElmDirectoryCmd=. This is a function that takes the path to a =elm.json= file and returns the string that builds =.elm=. This can then be used in a derivation to generate the .elm directory, as follows:
-#+begin_src nix
-packages.dotelm = pkgs.stdenv.mkDerivation {
-  name = "dotelm";
-  buildPhase = pkgs.mkDotElmDirectoryCmd ./elm.json;
-  src = ./.;
-  installPhase = "mkdir $out; cp -r .elm $out";
-};
-#+end_src
 * Updates
 Currently, a GitHub action is set to run at 0000 every Sunday. This will update the three JSON files stored in the [[file:mkElmDerivation/][mkElmDerivation directory]].
