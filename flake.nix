@@ -79,7 +79,7 @@
             self.packages.${system}.elmHasher
             self.packages.${system}.snapshot
           ];
-          buildInputs = with haskellPackages;
+          nativeBuildInputs = with haskellPackages;
             [
               haskell-language-server
               cabal-install
