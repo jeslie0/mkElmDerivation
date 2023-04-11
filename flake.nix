@@ -15,6 +15,7 @@
     let
       allPackagesJsonPath = ./mkElmDerivation/all-packages.json;
       elmHashesJsonPath = ./mkElmDerivation/elm-hashes.json;
+      mkSnapshot = hPkgs: lib: import ./src/snapshot/default.nix (hPkgs // { inherit lib; });
     in
     {
       overlay = builtins.trace "\"mkElmDerivation.overlay\" has been deprecated. Please use \"mkElmDerivation.overlays.mkElmDerivation\" instead." self.overlays.mkElmDerivation;
@@ -31,7 +32,7 @@
               inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
               elm = elmPackages.elm;
               uglify-js = nodePackages.uglify-js;
-              snapshot = import ./src/snapshot/default.nix (haskellPackages // { inherit lib; });
+              snapshot = mkSnapshot haskellPackages lib;
             };
         };
         mkElmSpaDerivation = final: prev: {
@@ -40,13 +41,13 @@
               inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
               elm = elmPackages.elm;
               elm-spa = elm-spa.packages.${system}.elmSpa;
-              snapshot = import ./src/snapshot/default.nix (haskellPackages // { inherit lib; });
+              snapshot = mkSnapshot haskellPackages lib;
             };
         };
         mkDotElmDirectoryCmd = final: prev: {
           mkDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
             inherit allPackagesJsonPath lib stdenv;
-            snapshot = import ./src/snapshot/default.nix (haskellPackages // { inherit lib; });
+            snapshot = mkSnapshot haskellPackages lib;
           }).mkDotElmCommand ./mkElmDerivation/elm-hashes.json;
         };
       };
