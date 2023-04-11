@@ -1,0 +1,3 @@
+[submodule "external/wiki"]
+	path = external/wiki
+	url = git@github.com:jeslie0/mkElmDerivation.wiki.git
