@@ -100,5 +100,15 @@ There is also an overlay providing a function =mkElmSpaDerivation=. This provide
 #+end_src
 
 Similarly to =mkElmDerivation=, =mkElmSpaDerivation= passes its arguments into a =nixpkgs.stdenv.mkDerivation= function. Both =buildPhase= and =installPhase= can't be updated in this way.
+* mkDotElmDirectoryCmd
+This flake also exposes the functionality to make the =.elm= directory, in the overlay =mkDotElmDirectoryCmd=. This is a function that takes the path to a =elm.json= file and returns the string that builds =.elm=. This can then be used in a derivation to generate the .elm directory, as follows:
+#+begin_src nix
+packages.dotelm = pkgs.stdenv.mkDerivation {
+  name = "dotelm";
+  buildPhase = pkgs.mkDotElmDirectoryCmd ./elm.json;
+  src = ./.;
+  installPhase = "mkdir $out; cp -r .elm $out";
+};
+#+end_src
 * Updates
 Currently, a GitHub action is set to run at 0000 every Sunday. This will update the three JSON files stored in the [[file:mkElmDerivation/][mkElmDerivation directory]].

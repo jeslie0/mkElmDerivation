@@ -43,6 +43,12 @@
               snapshot = import ./src/snapshot/default.nix (haskellPackages // { inherit lib; });
             };
         };
+        mkDotElmDirectoryCmd = final: prev: {
+          mkDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
+            inherit allPackagesJsonPath lib stdenv;
+            snapshot = import ./src/snapshot/default.nix (haskellPackages // { inherit lib; });
+          }).mkDotElmCommand ./mkElmDerivation/elm-hashes.json;
+        };
       };
 
     }
