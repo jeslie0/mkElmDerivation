@@ -3,15 +3,23 @@
 
   inputs = {
     nixpkgs.url = github:nixos/nixpkgs/nixpkgs-unstable;
-    flake-utils.url = github:numtide/flake-utils;
+    flake-utils = {
+      url = github:numtide/flake-utils;
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     elm-spa = {
       url = github:jeslie0/elm-spa;
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
+    elm-watch = {
+      url = github:jeslie0/elm-watch;
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, elm-spa }:
+  outputs = { self, nixpkgs, flake-utils, elm-spa, elm-watch }:
     let
       allPackagesJsonPath = ./mkElmDerivation/all-packages.json;
       elmHashesJsonPath = ./mkElmDerivation/elm-hashes.json;
@@ -26,6 +34,7 @@
         default = final: prev:
           prev.lib.composeManyExtensions
             (builtins.attrValues (builtins.removeAttrs self.overlays ["default"])) final prev;
+
         mkElmDerivation = final: prev: {
           mkElmDerivation = with prev;
             import ./nix/mkElmDerivation.nix {
@@ -35,6 +44,7 @@
               snapshot = mkSnapshot haskellPackages lib;
             };
         };
+
         mkElmSpaDerivation = final: prev: {
           mkElmSpaDerivation = with prev;
             import ./nix/mkElmSpaDerivation.nix {
@@ -44,6 +54,16 @@
               snapshot = mkSnapshot haskellPackages lib;
             };
         };
+
+        mkElmWatchDerivation = final: prev: {
+          mkElmWatchDerivation = with prev;
+            import ./nix/mkElmWatchDerivation.nix {
+              inherit allPackagesJsonPath elmHashesJsonPath lib stdenv;
+              elm-watch = elm-watch.packages.${system}.elm-watch;
+              snapshot = mkSnapshot haskellPackages lib;
+            };
+        };
+
         mkDotElmDirectoryCmd = final: prev: {
           mkDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
             inherit allPackagesJsonPath lib stdenv;
@@ -51,7 +71,6 @@
           }).mkDotElmCommand ./mkElmDerivation/elm-hashes.json;
         };
       };
-
     }
     // flake-utils.lib.eachDefaultSystem (
       system:
