@@ -31,14 +31,15 @@
         "nixpkgs": [
           "nixpkgs"
         ],
+        "npm-fix": "npm-fix",
         "npmlock2nix": "npmlock2nix"
       },
       "locked": {
-        "lastModified": 1681329548,
-        "narHash": "sha256-Sarw2BnwnH21qqkzdBX51J7f8DVNGzDBEy4aAV7ff0Y=",
+        "lastModified": 1681842996,
+        "narHash": "sha256-xJy/sARdwOn9YCIkuVQdPRZRlhRJhY+Bwpu2alys8nI=",
         "owner": "jeslie0",
         "repo": "elm-watch",
-        "rev": "35962fc08bbf584775f8aba179af796ec2534113",
+        "rev": "5a358bf479f0ae3b5d7adb5c6f32bdf224cfe044",
         "type": "github"
       },
       "original": {
@@ -75,6 +76,31 @@
         "owner": "nixos",
         "ref": "nixpkgs-unstable",
         "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "npm-fix": {
+      "inputs": {
+        "flake-utils": [
+          "elm-watch",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "elm-watch",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1681681690,
+        "narHash": "sha256-mI2ND49vInMbeXSMQDp8y7Prjh53W4RlpixWRlH2Lio=",
+        "owner": "jeslie0",
+        "repo": "npm-lockfile-fix",
+        "rev": "1a3799d0b8b9ed5b51f39bd878a3ba2d8ac5656a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeslie0",
+        "repo": "npm-lockfile-fix",
         "type": "github"
       }
     },

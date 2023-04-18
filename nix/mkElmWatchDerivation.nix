@@ -37,6 +37,6 @@ stdenv.mkDerivation (args // {
     ''
       ${elm-watch}/bin/elm-watch make ${option} ${builtins.concatStringsSep " " targets}
       mkdir $out
-      cp -r * $out
+      cp -r . $out
     '';
 })
