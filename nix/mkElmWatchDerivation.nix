@@ -33,15 +33,6 @@ let
   elmWatchAttr = with builtins;
     (fromJSON (readFile elmWatchJson));
 
-  # Given a target, create the command that creates directories and
-  # copies it to $out.
-  mkOutputCmd = target:
-    let
-      output = elmWatchAttr.targets.${target}.output;
-      newDir = builtins.dirOf output;
-    in
-    "mkdir -p $out/${newDir}; cp ${output} $out/${newDir}";
-
   # Extract all target names from elm-watch.json.
   allTargets = with builtins;
     attrNames elmWatchAttr.targets;
@@ -57,11 +48,28 @@ let
   allRelativeTargets = with builtins;
     filter (target: isRelative elmWatchAttr.targets.${target}.output) allTargets;
 
+  fixedTargets = with builtins;
+    concatMap (target: filter (relTarget: lib.hasInfix target relTarget) allRelativeTargets) targets;
+
+  # Given a target, create the command that creates directories and
+  # copies it to $out.
+  mkOutputCmd = target:
+    let
+      output = elmWatchAttr.targets.${target}.output;
+      newDir = builtins.dirOf output;
+    in
+      ''
+        mkdir -p $out/${newDir}
+        cp ${output} $out/${newDir}
+      '';
+
+  # Build the command to extract targets to $out.
   targetExtractor = with builtins;
     concatStringsSep " "
-      (if (targets == [ ])
-      then map mkOutputCmd allRelativeTargets
-      else map mkOutputCmd targets);
+      (if (targets == [])
+       then map mkOutputCmd allRelativeTargets
+       else map mkOutputCmd fixedTargets);
+
 in
 
 stdenv.mkDerivation (args // {
