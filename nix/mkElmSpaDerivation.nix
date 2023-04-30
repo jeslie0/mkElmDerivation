@@ -9,7 +9,7 @@
   # The base directory of your elm project (most likely ./.).
 , src
 
-  # Optional: The elm projects elm.json file. Will default to
+  # Optional: The elm project's elm.json file. Will default to
   # ${src}/elm.json
 , elmJson ? "${src}/elm.json"
 , ...

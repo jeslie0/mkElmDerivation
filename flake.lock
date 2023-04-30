@@ -23,6 +23,31 @@
         "type": "github"
       }
     },
+    "elm-watch": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "npm-fix": "npm-fix",
+        "npmlock2nix": "npmlock2nix"
+      },
+      "locked": {
+        "lastModified": 1681842996,
+        "narHash": "sha256-xJy/sARdwOn9YCIkuVQdPRZRlhRJhY+Bwpu2alys8nI=",
+        "owner": "jeslie0",
+        "repo": "elm-watch",
+        "rev": "5a358bf479f0ae3b5d7adb5c6f32bdf224cfe044",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeslie0",
+        "repo": "elm-watch",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "locked": {
         "lastModified": 1667395993,
@@ -54,9 +79,51 @@
         "type": "github"
       }
     },
+    "npm-fix": {
+      "inputs": {
+        "flake-utils": [
+          "elm-watch",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "elm-watch",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1681681690,
+        "narHash": "sha256-mI2ND49vInMbeXSMQDp8y7Prjh53W4RlpixWRlH2Lio=",
+        "owner": "jeslie0",
+        "repo": "npm-lockfile-fix",
+        "rev": "1a3799d0b8b9ed5b51f39bd878a3ba2d8ac5656a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jeslie0",
+        "repo": "npm-lockfile-fix",
+        "type": "github"
+      }
+    },
+    "npmlock2nix": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1673447413,
+        "narHash": "sha256-sJM82Sj8yfQYs9axEmGZ9Evzdv/kDcI9sddqJ45frrU=",
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "rev": "9197bbf397d76059a76310523d45df10d2e4ca81",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "npmlock2nix",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "elm-spa": "elm-spa",
+        "elm-watch": "elm-watch",
         "flake-utils": "flake-utils",
         "nixpkgs": "nixpkgs"
       }
