@@ -7,8 +7,8 @@ Details on how to use the flake can be found in the wiki.
 
 Support is provided for the following:
 - Ordinary elm projects;
-- elm-spa applications;
-- elm-watch applications;
+- [[https://github.com/ryannhg/elm-spa][elm-spa]] applications;
+- [[https://github.com/lydell/elm-watch][elm-watch]] applications;
 - Creating =.elm= directories.
 
 * Versions
