@@ -27,8 +27,10 @@ stdenv.mkDerivation (args // {
 
   installPhase =
     ''
+      runHook preInstall
       ${elm-spa}/bin/elm-spa build
       mkdir $out
       cp -r public/* $out
+      runHook postInstall
     '';
 })

@@ -87,7 +87,9 @@ stdenv.mkDerivation (args // {
 
   installPhase =
     ''
+      runHook preInstall
       ${elm-watch}/bin/elm-watch make ${option} ${builtins.concatStringsSep " " targets}
       ${targetExtractor}
+      runHook postInstall
     '';
 })

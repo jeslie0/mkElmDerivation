@@ -45,6 +45,7 @@ stdenv.mkDerivation (args // {
       extension = if outputJavaScript then "js" else "html";
     in
     ''
+         runHook preInstall
          mkdir -p $out/share/doc
          ${lib.concatStrings (map (module: ''
            echo "compiling ${elmfile module}"
@@ -55,5 +56,6 @@ stdenv.mkDerivation (args // {
             | uglifyjs --mangle --output $out/${module}.min.${extension}
         ''}
       '') targets)}
+          runHook postInstall
     '';
 })
