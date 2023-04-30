@@ -44,10 +44,13 @@ let
     (lib.hasPrefix "~" path)
   ];
 
-  # Extract all of the relative targets from elm-watch.json. At all of the relative tar
+  # Extract all of the relative targets from elm-watch.json.
   allRelativeTargets = with builtins;
     filter (target: isRelative elmWatchAttr.targets.${target}.output) allTargets;
 
+  # elm-watch matches its targets based on substrings, so we do the
+  # same. This list is of all relative targets that have a substring
+  # from targets.
   fixedTargets = with builtins;
     concatMap (target: filter (relTarget: lib.hasInfix target relTarget) allRelativeTargets) targets;
 
