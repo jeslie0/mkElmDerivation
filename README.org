@@ -1,4 +1,6 @@
 #+title: mkElmDerivation
+[[https://img.shields.io/badge/Built%20with-Haskell-blueviolet.svg]] [[https://img.shields.io/badge/Built%20for-Elm-9cf.svg]] [[https://img.shields.io/github/license/jeslie0/mkelmderivation.svg]]
+
 This project is an attempt to provide a way to package elm applications with nix, with less user input required than the standard [[https://github.com/cachix/elm2nix][elm2nix]]. This project is based heavily on elm2nix and wouldn't be possible without it. There should be no need to generate any nix files using elm2nix, and no updates required when installing a new elm package. The nix expression is generated on the fly from the given =elm.json= file.
 
 Details on how to use the flake can be found in the wiki.
