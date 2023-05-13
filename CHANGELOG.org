@@ -1,6 +1,6 @@
 #+title: Revision history for mkElmDerivation
 
-** 0.5.0(PRE)
+** 0.5.0 -- 2023-05-13
 - (BREAKING) Remove =${system}= from the overlays. This breaking change simplifies the overlay usage, and is arguably more correct than the previous approach.
 - Tidy up and organise the nix files.
 - Add =elm-watch= support.
