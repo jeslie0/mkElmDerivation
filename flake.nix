@@ -65,6 +65,16 @@
             };
         };
 
+        mkCEADerivation = final: prev: {
+          mkCEADerivation = with prev;
+            import ./nix/mkCEADerivation.nix {
+              inherit allPackagesJsonPath elmHashesJsonPath lib stdenv;
+              elm = elmPackages.elm;
+              create-elm-app = elmPackages.create-elm-app;
+              snapshot = mkSnapshot haskellPackages lib;
+            };
+        };
+
         mkDotElmDirectoryCmd = final: prev: {
           mkDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
             inherit allPackagesJsonPath lib stdenv;
