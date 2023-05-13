@@ -1,14 +1,17 @@
 #+title: Revision history for mkElmDerivation
 
 ** 0.5.0(PRE)
-- (BREAKING) Remove ${system} from the overlays. This breaking change simplifies the overlay usage, and is arguably more correct than the previous approach.
+- (BREAKING) Remove =${system}= from the overlays. This breaking change simplifies the overlay usage, and is arguably more correct than the previous approach.
 - Tidy up and organise the nix files.
-- Add elm-watch support.
-- (BREAKING) Change mkElmDerivation's inputs slightly to allow for a more general derivation.
+- Add =elm-watch= support.
+- (BREAKING) Change mkElmDerivation's inputs slightly to allow for a more general derivation. See the wiki for more information.
+- Improve =elm-hasher= source structure.
+
 ** 0.4.0 -- 2023-03-31
 - Add =mkElmSpaDerivation= function for building elm-spa apps;
 - Add ability to pass arguments to the mkDerivation call;
 - Add elmHashes derivation, exposing the elm-hashes.json for public use.
+
 ** 0.3.0 -- 2023-03-17
 - Remove the binary =registry.dat= from version control. It is now generated when building the elm package.
 
