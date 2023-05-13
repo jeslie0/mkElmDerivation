@@ -102,7 +102,12 @@
             name = "elmHashes";
             src = ./mkElmDerivation;
             installPhase = "mkdir $out; cp elm-hashes.json $out";
-            meta.description = "A JSON of elm packages and their hashes.";
+            meta = {
+              description = "A JSON of elm packages and their hashes";
+              homepage = homepage;
+              changelog = changelog;
+              license = pkgs.lib.licenses.mit;
+            };
           };
 
           # These require IFD. Use these for development, but not
