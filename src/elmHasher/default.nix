@@ -5,15 +5,10 @@
 }:
 mkDerivation {
   pname = "elmHasher";
-  version = "0.2.0.0";
+  version = "0.2.0.1";
   src = ./.;
-  isLibrary = true;
+  isLibrary = false;
   isExecutable = true;
-  libraryHaskellDepends = [
-    aeson base bytestring conduit conduit-extra cryptonite directory
-    hashable http-conduit http-types memory mtl text threads-pool
-    transformers unordered-containers vector
-  ];
   executableHaskellDepends = [
     aeson base bytestring conduit conduit-extra cryptonite directory
     hashable http-conduit http-types memory mtl text threads-pool

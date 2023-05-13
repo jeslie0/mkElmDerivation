@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module MkElmDerivation.Conduits where
+module Conduits where
 
 import qualified Control.Concurrent as Con
 import Control.Monad.IO.Class
@@ -16,9 +16,9 @@ import qualified Data.HashMap.Strict as M
 import Data.Hashable
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import MkElmDerivation.GetPackages
-import MkElmDerivation.MapHelpers
-import MkElmDerivation.Types
+import GetPackages
+import MapHelpers
+import Types
 import Network.HTTP.Client.Conduit
 import Network.HTTP.Simple
 import Network.HTTP.Types.Status

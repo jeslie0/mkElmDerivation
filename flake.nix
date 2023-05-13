@@ -23,6 +23,8 @@
       allPackagesJsonPath = ./mkElmDerivation/all-packages.json;
       elmHashesJsonPath = ./mkElmDerivation/elm-hashes.json;
       mkSnapshot = hPkgs: lib: import ./src/snapshot/default.nix (hPkgs // { inherit lib; });
+      homepage = "https://github.com/jeslie0/mkElmDerivation";
+      changelog = "https://github.com/jeslie0/mkElmDerivation/blob/main/CHANGELOG.org";
     in
     {
       overlay = builtins.trace "\"mkElmDerivation.overlay\" has been deprecated. Please use \"mkElmDerivation.overlays.mkElmDerivation\" instead." self.overlays.mkElmDerivation;
@@ -80,7 +82,14 @@
       {
         packages = {
           default = self.packages.${system}.elmHasher;
-          elmHasher = import ./src/elmHasher/default.nix (haskellPackages // { lib = pkgs.lib; });
+          elmHasher = (import ./src/elmHasher/default.nix (haskellPackages // { lib = pkgs.lib; })) // {
+            meta = {
+              description = "A program to fetch and hash all elm packages";
+              homepage = homepage;
+              changelog = changelog;
+              license = pkgs.lib.licenses.mit;
+            };
+          };
           snapshot = import ./src/snapshot/default.nix (haskellPackages // { lib = pkgs.lib; });
           elmHashes = pkgs.stdenvNoCC.mkDerivation {
             name = "elmHashes";

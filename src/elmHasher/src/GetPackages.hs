@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module MkElmDerivation.GetPackages where
+module GetPackages where
 
 import Conduit
 import Control.Concurrent
@@ -15,8 +15,8 @@ import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as B
 import qualified Data.HashMap.Strict as M
 import qualified Data.Text as T
-import MkElmDerivation.MapHelpers
-import MkElmDerivation.Types
+import MapHelpers
+import Types
 import Network.HTTP.Conduit
 import Network.HTTP.Types.Status
 

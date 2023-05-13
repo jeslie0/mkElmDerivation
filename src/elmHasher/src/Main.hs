@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module ElmHasher where
+module Main where
 
 import Control.Exception
 import Control.Monad.IO.Class
@@ -12,8 +12,8 @@ import qualified Data.Conduit.Binary as BS
 import qualified Data.HashMap.Strict as M
 import qualified Data.Text as T
 import qualified Data.Vector as V
-import MkElmDerivation.Conduits
-import MkElmDerivation.Types
+import Conduits
+import Types
 
 -- * Main
 

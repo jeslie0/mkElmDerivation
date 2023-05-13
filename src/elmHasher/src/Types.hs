@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-module MkElmDerivation.Types where
+module Types where
 
 import Control.Concurrent
 import Data.Aeson

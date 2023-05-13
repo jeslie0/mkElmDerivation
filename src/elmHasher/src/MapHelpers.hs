@@ -1,10 +1,10 @@
-module MkElmDerivation.MapHelpers where
+module MapHelpers where
 
 import Control.Monad
 import qualified Data.HashMap.Strict as M
 import Data.Hashable
 import qualified Data.Vector as V
-import MkElmDerivation.Types
+import Types
 
 -- | Inserts the Elm package information and hash into the given map.
 addHashToMap ::
