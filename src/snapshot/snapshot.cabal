@@ -6,12 +6,16 @@ description:        This package is mostly taken from elm2nix, with some
                     to build the binary blob registry.dat, which is then allows Elm to
                     function properly.
              
-version:            0.1.0.0
+version:            0.1.0.1
+
 author:             James Leslie
+
 maintainer:         jamesleslie@posteo.net
 
+license:            BSD-3-Clause
+
 executable Snapshot
-    main-is:          Snapshot.hs
+    main-is:       Main.hs
     build-depends: base
                  , aeson
                  , bytestring
@@ -22,4 +26,4 @@ executable Snapshot
                  , text
     hs-source-dirs:   src
     default-language: Haskell2010
-    ghc-options: -main-is Snapshot -O2 -threaded
+    ghc-options: -O2 -threaded

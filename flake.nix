@@ -90,7 +90,14 @@
               license = pkgs.lib.licenses.mit;
             };
           };
-          snapshot = import ./src/snapshot/default.nix (haskellPackages // { lib = pkgs.lib; });
+          snapshot = (import ./src/snapshot/default.nix (haskellPackages // { lib = pkgs.lib; })) // {
+            meta = {
+              description = "A program to serialise an elm-packages.json to binary";
+              homepage = homepage;
+              changelog = changelog;
+              license = pkgs.lib.licenses.bsd3;
+            };
+          };
           elmHashes = pkgs.stdenvNoCC.mkDerivation {
             name = "elmHashes";
             src = ./mkElmDerivation;

@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 
-module Snapshot where
+module Main where
 
 import Control.Monad (liftM2, liftM3, (<=<))
 import Data.Aeson qualified as Aeson
