@@ -65,6 +65,16 @@
             };
         };
 
+        mkElmPagesDerivation = final: prev: {
+          mkElmPagesDerivation = with prev;
+            import ./nix/mkElmPagesDerivation.nix {
+              inherit allPackagesJsonPath elmHashesJsonPath lib stdenv;
+              elm = elmPackages.elm;
+              elm-pages = elmPackages.elm-pages;
+              snapshot = mkSnapshot haskellPackages lib;
+            };
+        };
+
         mkDotElmDirectoryCmd = final: prev: {
           mkDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
             inherit allPackagesJsonPath lib stdenv;
