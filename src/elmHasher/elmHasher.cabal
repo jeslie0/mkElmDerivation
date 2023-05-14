@@ -17,7 +17,7 @@ maintainer:         jamesleslie@posteo.net
 
 extra-source-files: CHANGELOG.org
 
-executable ElmHasher
+executable elmHasher
     main-is:          Main.hs
 
     other-modules: Types,

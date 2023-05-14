@@ -15,5 +15,5 @@ mkDerivation {
     transformers unordered-containers vector
   ];
   license = lib.licenses.mit;
-  mainProgram = "ElmHasher";
+  mainProgram = "elmHasher";
 }
