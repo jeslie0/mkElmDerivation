@@ -16,13 +16,18 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
+    elmSnapshot = {
+      url = "github:jeslie0/ElmSnapshot";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, elm-spa, elm-watch }:
+  outputs = { self, nixpkgs, flake-utils, elm-spa, elm-watch, elmSnapshot }:
     let
       allPackagesJsonPath = ./mkElmDerivation/all-packages.json;
       elmHashesJsonPath = ./mkElmDerivation/elm-hashes.json;
-      mkSnapshot = hPkgs: lib: import ./src/snapshot/default.nix (hPkgs // { inherit lib; });
+      snapshot = system: elmSnapshot.packages.${system}.default;
       homepage = "https://github.com/jeslie0/mkElmDerivation";
       changelog = "https://github.com/jeslie0/mkElmDerivation/blob/main/CHANGELOG.org";
     in
@@ -42,7 +47,7 @@
               inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
               elm = elmPackages.elm;
               uglify-js = nodePackages.uglify-js;
-              snapshot = mkSnapshot haskellPackages lib;
+              snapshot = snapshot final.system;
             };
         };
 
@@ -52,7 +57,7 @@
               inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
               elm = elmPackages.elm;
               elm-spa = elm-spa.packages.${system}.elmSpa;
-              snapshot = mkSnapshot haskellPackages lib;
+              snapshot = snapshot final.system;
             };
         };
 
@@ -61,14 +66,14 @@
             import ./nix/mkElmWatchDerivation.nix {
               inherit allPackagesJsonPath elmHashesJsonPath lib stdenv;
               elm-watch = elm-watch.packages.${system}.elm-watch;
-              snapshot = mkSnapshot haskellPackages lib;
+              snapshot = snapshot final.system;
             };
         };
 
         mkDotElmDirectoryCmd = final: prev: {
           mkDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
             inherit allPackagesJsonPath lib stdenv;
-            snapshot = mkSnapshot haskellPackages lib;
+            snapshot = snapshot final.system;
           }).mkDotElmCommand ./mkElmDerivation/elm-hashes.json;
         };
       };
@@ -88,14 +93,6 @@
               homepage = homepage;
               changelog = changelog;
               license = pkgs.lib.licenses.mit;
-            };
-          };
-          snapshot = (import ./src/snapshot/default.nix (haskellPackages // { lib = pkgs.lib; })) // {
-            meta = {
-              description = "A program to serialise an elm-packages.json to binary";
-              homepage = homepage;
-              changelog = changelog;
-              license = pkgs.lib.licenses.bsd3;
             };
           };
           elmHashes = pkgs.stdenvNoCC.mkDerivation {
