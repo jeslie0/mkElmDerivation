@@ -18,8 +18,6 @@
     };
     elmSnapshot = {
       url = "github:jeslie0/ElmSnapshot";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
     };
   };
 
@@ -120,7 +118,6 @@
         devShell = haskellPackages.shellFor {
           packages = p: [
             self.packages.${system}.elmHasher
-            self.packages.${system}.snapshot
           ];
           nativeBuildInputs = with haskellPackages;
             [
