@@ -21,13 +21,22 @@ rec {
 
   # Given a JSON of elm packages hashes and an elm.json, generate the
   # command to create the .elm directory
-  mkDotElmCommand = with builtins; elmHashesJson: elmJson:
+  mkDotElmCommand = elmHashesJson: elmJson: makeDotElmCommand elmHashesJson { inherit elmJson; };
+
+  # Given a JSON of elm packages hashes and an elm.json, generate the
+  # command to create the .elm directory.
+  #
+  # Optionally accepts extraDeps, for use with apps that manage their
+  # dependencies outside elm.json; like elm-codegen and its elm.codegen.json file.
+  # Pass an attr set with the shape `elmJson = { "miniBill/elm-unicode" = "1.0.2"; };`.
+  makeDotElmCommand = with builtins; elmHashesJson: { elmJson, extraDeps ? {} }:
     let
       dependencies =
         (fromJSON (readFile elmJson)).dependencies.direct //
         (fromJSON (readFile elmJson)).dependencies.indirect //
         (fromJSON (readFile elmJson)).test-dependencies.direct //
-        (fromJSON (readFile elmJson)).test-dependencies.indirect;
+        (fromJSON (readFile elmJson)).test-dependencies.indirect //
+        extraDeps;
       derivationList =
         lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies;
       elmVersion = (fromJSON (readFile elmJson))."elm-version";
