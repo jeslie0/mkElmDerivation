@@ -63,7 +63,6 @@ let
       ${outputCommand dotElmFreeBasename} \
       ${optimizeCommand} \
       ${docsCommand dotElmFreeBasename}
-
       ${uglifyjsCommand dotElmFreeBasename}
     '';
 
@@ -83,20 +82,33 @@ let
 in
 
 stdenv.mkDerivation (args // {
-  buildInputs = [ elm ]
-    ++ lib.optional outputJavaScript uglify-js;
+  nativeBuildInputs =
+    if builtins.hasAttr "nativeBuildInputs" args
+    then args.nativeBuildInputs
+    else
+      [ elm ]
+      ++ lib.optional outputJavaScript uglify-js;
 
-  buildPhase = (import ./lib.nix {
-    inherit stdenv lib snapshot allPackagesJsonPath;
-  }).mkDotElmCommand elmHashesJsonPath
-    elmJson;
+  buildPhase =
+    ''
+    runHook preBuild
+    ${(import ./lib.nix {inherit stdenv lib snapshot allPackagesJsonPath;}).mkDotElmCommand elmHashesJsonPath elmJson}
+    ${if builtins.hasAttr "buildPhase" args
+      then args.buildPhase
+      else
+        ''
+        ${makeDocsDirectory}
+        ${builtins.concatStringsSep "\n" (builtins.map elmMakeCommand targets)}
+        ''}
+    runHook postBuild
+    '';
 
   installPhase =
+    if builtins.hasAttr "installPhase" args
+    then args.installPhase
+    else
     ''
     runHook preInstall
-    mkdir $out
-    ${makeDocsDirectory}
-    ${builtins.concatStringsSep "\n" (builtins.map elmMakeCommand targets)}
     runHook postInstall
     '';
 })
