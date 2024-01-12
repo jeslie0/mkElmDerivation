@@ -135,6 +135,13 @@
             import ./tests/custom/default.nix {
               mkElmDerivation = mkElmDerivation pkgs;
             };
+
+          elm-optimize-level-2 =
+            import ./tests/elm-level-2/default.nix {
+              mkElmDerivation = mkElmDerivation pkgs;
+              elm-optimize-level-2 = pkgs.elmPackages.elm-optimize-level-2;
+              elm = pkgs.elmPackages.elm;
+            };
         };
 
         devShell = haskellPackages.shellFor {
