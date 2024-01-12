@@ -1,0 +1,25 @@
+name: CI
+run-name: Run tests to verify that mkElmDerivation works as expected
+on:
+  push:
+    branches:
+    - develop
+    - main
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setting up Checkout
+        uses: actions/checkout@v3
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Nix
+        uses: cachix/install-nix-action@v18
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tests
+        run: |
+          nix flake check
