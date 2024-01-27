@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.5.1] - 2024-01-27
+_This update marks the transition towards a more general and minimal mkElmDerivation._
+
+### Changed
+
+- The `mkElmDerivation` function is now more generic and allows users to write their own buildPhases and installPhases.
+- This changelog is now in the Common Changelog format.
+- The `mkElmWatchDerivation` and `mkElmSpaDerivation` functions have been marked as deprecated. Users should `mkElmDerivation` with custom build phases and install phases.
+
+### Added
+
+- The elm snapshot code has been moved back into this repository.
+
+### Removed
+
+- The dependency on flake-utils has been removed.
+
+
 ## [0.5.0] - 2023-05-13
 
 ### Changed
@@ -65,6 +83,7 @@ _Add improvements to memory and speed of the hasher application._
 
 _Initial release._
 
+[0.5.1]: https://github.com/jeslie0/mkElmDerivation/releases/tag/v0.5.1
 [0.5.0]: https://github.com/jeslie0/mkElmDerivation/releases/tag/v0.5.0
 [0.4.0]: https://github.com/jeslie0/mkElmDerivation/releases/tag/v0.4.0
 [0.3.0]: https://github.com/jeslie0/mkElmDerivation/releases/tag/v0.3.0
