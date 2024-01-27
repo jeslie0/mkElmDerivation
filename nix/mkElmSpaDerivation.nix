@@ -15,6 +15,7 @@
 , ...
 } @ args:
 
+builtins.trace "WARNING: mkElmSpaDerivation is now deprecated and will be removed in the next major release of mkElmDerivation. Please use the main mkElmDerivation function, with a custom buildPhase and installPhase." (
 stdenv.mkDerivation (args // {
   inherit pname version src;
 
@@ -33,4 +34,4 @@ stdenv.mkDerivation (args // {
       cp -r public/* $out
       runHook postInstall
     '';
-})
+}))

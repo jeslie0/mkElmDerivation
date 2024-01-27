@@ -74,7 +74,7 @@ let
        else map mkOutputCmd fixedTargets);
 
 in
-
+builtins.trace "WARNING: mkElmWatchDerivation is now deprecated and will be removed in the next major release of mkElmDerivation. Please use the main mkElmDerivation function, with a custom buildPhase and installPhase." (
 stdenv.mkDerivation (args // {
   inherit pname version src;
 
@@ -92,4 +92,4 @@ stdenv.mkDerivation (args // {
       ${targetExtractor}
       runHook postInstall
     '';
-})
+}))

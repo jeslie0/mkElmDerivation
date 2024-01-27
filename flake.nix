@@ -161,6 +161,7 @@
               basic =
                 import ./tests/basic/default.nix {
                   mkElmDerivation = mkElmDerivation pkgs;
+                  elm = pkgs.elmPackages.elm;
                 };
 
               custom =

@@ -1,17 +1,59 @@
 #+title: mkElmDerivation
 [[https://img.shields.io/badge/built%20with-Haskell-8f4e8b.svg]] [[https://img.shields.io/badge/built%20for-Elm-60b6cd.svg]] [[https://img.shields.io/github/license/jeslie0/mkelmderivation.svg]] [[https://img.shields.io/github/actions/workflow/status/jeslie0/mkElmDerivation/CI.yml.svg]]
 
-This project is an attempt to provide a way to package elm applications with nix, with less user input required than the standard [[https://github.com/cachix/elm2nix][elm2nix]]. This project is based heavily on elm2nix and wouldn't be possible without it. There should be no need to generate any nix files using elm2nix, and no updates required when installing a new elm package. The nix expression is generated on the fly from the given =elm.json= file.
+This repository provides an unopinionated, general approach to packaging Elm projects. An overlay is provided, giving a function =mkElmDerivation= which is an overloaded version of nixpkgs's =mkDerivation=, but with all of your elm dependencies downloaded and stored in the right place. This allows you to package normal Elm projects, but also things like elm-spa and elm-watch apps. All of this is done by using your project's =elm.json= file, and requires no updating of nix files when you update your dependencies.
 
-Details on how to use the flake can be found in the wiki.
+* Examples
+The following is the content of a =flake.nix= file, which can be used to build a normal elm project.
+#+begin_src nix
+{
+  description = "An example flake for building elm projects.";
 
-Support is provided for the following:
-- Ordinary elm projects;
-- [[https://github.com/ryannhg/elm-spa][elm-spa]] applications;
-- [[https://github.com/lydell/elm-watch][elm-watch]] applications;
-- Creating =.elm= directories.
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    mkElmDerivation.url = "github:jeslie0/mkElmDerivation";
+  };
+
+  outputs = { self, nixpkgs, mkElmDerivation }:
+    let
+      system =
+        "x86_64-linux";
+
+      pkgs = import nixpkgs {
+        overlays = [ mkElmDerivation.overlay ];
+        inherit system;
+      };
+      in
+        {
+          packages = {
+            default = pkgs.mkElmDerivation {
+              name = "elm-example";
+              src = ./.;
+              elmJson = ./elm.json; # This defaults to ${src}/elm.json
+              nativeBuildInputs =
+                [ pkgs.elmPackages.elm ];
+              buildPhase =
+                ''
+                elm make src/Main.elm --output Main.js --optimize
+                '';
+              installPhase =
+                ''
+                mkdir $out
+                cp Main.js $out
+                '';
+            };
+          };
+        };
+}
+#+end_src
+
+We aren't restricted to just using Elm, however. Since this is just wrapper around =mkDerivation=, you can use whatever build inputs and build commands you want. See the [[./tests][tests]] directory for some more examples.
 
 * Versions
 This project currently supports version 0.19.1 of Elm.
+
+* Deprecations
+This project currently provides the functions =mkElmSpaDerivation= and =mkElmWatchDerivation=. The existence of these functions made sense when =mkElmDerivation= was more opinionated and less customizable; however, now that =mkElmDerivation= is more generic they aren't as useful. They will be kept in this project until the next major release, but I recommend not using them and instead using =mkElmDerivation= with a custom ~buildPhase~ and ~installPhase~.
+
 * Updates
 Currently, a GitHub action is set to run at 0000 every Sunday. This will update the three JSON files stored in the [[file:mkElmDerivation/][mkElmDerivation directory]].

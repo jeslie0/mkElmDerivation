@@ -1,6 +1,16 @@
-{ mkElmDerivation }:
+{ mkElmDerivation, elm }:
 mkElmDerivation {
-  name = "basic-test";
+  name = "elm-example";
   src = ./.;
-  outputJavaScript = true;
+  nativeBuildInputs =
+    [ elm ];
+  buildPhase =
+    ''
+    elm make src/Main.elm --output Main.js --optimize
+    '';
+  installPhase =
+    ''
+    mkdir $out
+    cp Main.js $out
+    '';
 }
