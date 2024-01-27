@@ -4,39 +4,56 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
 
-    flake-utils = {
-      url = "github:numtide/flake-utils";
-    };
-
     elm-spa = {
       url = "github:jeslie0/elm-spa";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
     };
 
     elm-watch = {
       url = "github:jeslie0/elm-watch";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
     };
 
-    elmSnapshot.url = "github:jeslie0/ElmSnapshot";
+    elmSnapshot = {
+      url = "github:jeslie0/ElmSnapshot";
+    };
   };
 
-  outputs = { self, nixpkgs, flake-utils, elm-spa, elm-watch, elmSnapshot }:
+  outputs = { self, nixpkgs, elm-spa, elm-watch, elmSnapshot }:
     let
-      allPackagesJsonPath = ./mkElmDerivation/all-packages.json;
-      elmHashesJsonPath = ./mkElmDerivation/elm-hashes.json;
-      snapshot = system: elmSnapshot.packages.${system}.default;
-      homepage = "https://github.com/jeslie0/mkElmDerivation";
-      changelog = "https://github.com/jeslie0/mkElmDerivation/blob/main/CHANGELOG.org";
-          mkElmDerivation = pkgs: with pkgs;
-            import ./nix/mkElmDerivation.nix {
-              inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
-              elm = elmPackages.elm;
-              uglify-js = nodePackages.uglify-js;
-              snapshot = snapshot system;
-            };
+      supportedSystems =
+        [ "aarch64-linux" "x86_64-linux" "aarch64-darwin" "x86_64-darwin" ];
+
+      forAllSystems =
+        nixpkgs.lib.genAttrs supportedSystems;
+
+      nixpkgsFor = forAllSystems (system:
+        import nixpkgs {
+          inherit system;
+        });
+
+      allPackagesJsonPath =
+        ./mkElmDerivation/all-packages.json;
+
+      elmHashesJsonPath =
+        ./mkElmDerivation/elm-hashes.json;
+
+      snapshot =
+        system: elmSnapshot.packages.${system}.default;
+
+      homepage =
+        "https://github.com/jeslie0/mkElmDerivation";
+
+      changelog =
+        "https://github.com/jeslie0/mkElmDerivation/blob/main/CHANGELOG.org";
+
+      mkElmDerivation = pkgs: with pkgs;
+        import ./nix/mkElmDerivation.nix {
+          inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
+          elm = elmPackages.elm;
+          uglify-js = nodePackages.uglify-js;
+          snapshot = snapshot system;
+        };
     in
     {
       overlay =
@@ -47,7 +64,9 @@
         # this flake.
         default = final: prev:
           prev.lib.composeManyExtensions
-            (builtins.attrValues (builtins.removeAttrs self.overlays ["default"])) final prev;
+            (builtins.attrValues
+              (builtins.removeAttrs self.overlays ["default"])
+            ) final prev;
 
         mkElmDerivation = final: prev: {
           mkElmDerivation = mkElmDerivation prev;
@@ -79,84 +98,107 @@
           }).mkDotElmCommand ./mkElmDerivation/elm-hashes.json;
         };
       };
-    }
-    // flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs =
-          nixpkgs.legacyPackages.${system};
 
-        haskellPackages =
-          pkgs.haskellPackages;
-      in
-      {
-        packages = {
-          default = self.packages.${system}.elmHasher;
+      packages =
+        forAllSystems
+          (system:
+            let
+              pkgs =
+                nixpkgsFor.${system};
 
-          elmHasher = (import ./src/elmHasher/default.nix (haskellPackages // { lib = pkgs.lib; })) // {
-            meta = {
-              description = "A program to fetch and hash all elm packages";
-              homepage = homepage;
-              changelog = changelog;
-              license = pkgs.lib.licenses.mit;
-            };
-          };
+              haskellPackages =
+                pkgs.haskellPackages;
+            in
+              {
+                default = self.packages.${system}.elmHasher;
 
-          elmHashes = pkgs.stdenvNoCC.mkDerivation {
-            name = "elmHashes";
-            src = ./mkElmDerivation;
-            installPhase = "mkdir $out; cp elm-hashes.json $out";
-            meta = {
-              description = "A JSON of elm packages and their hashes";
-              homepage = homepage;
-              changelog = changelog;
-              license = pkgs.lib.licenses.mit;
-            };
-          };
+                elmHasher =
+                  (import ./src/elmHasher/default.nix (haskellPackages // { lib = pkgs.lib; }))
+                  //
+                  {
+                    meta = {
+                      description = "A program to fetch and hash all elm packages";
+                      homepage = homepage;
+                      changelog = changelog;
+                      license = pkgs.lib.licenses.mit;
+                    };
+                  };
 
-          # These require IFD. Use these for development, but not
-          # for release. Run cabal2nix manually to update the
-          # default.nix files. One needs to add ellipses to the
-          # input attribute set in both these files.
-          # elmHasher = haskellPackages.callCabal2nix "elmHasher" ./src/elmHasher { };
-          # snapshot = haskellPackages.callCabal2nix "snapshot" ./src/snapshot { };
-        };
+                elmHashes =
+                  pkgs.stdenvNoCC.mkDerivation {
+                    name = "elmHashes";
+                    src = ./mkElmDerivation;
+                    installPhase = "mkdir $out; cp elm-hashes.json $out";
+                    meta = {
+                      description = "A JSON of elm packages and their hashes";
+                      homepage = homepage;
+                      changelog = changelog;
+                      license = pkgs.lib.licenses.mit;
+                    };
+                  };
+              }
+          );
 
-        defaultPackage =
-          builtins.trace "defaultPackage has been deprecated. Please use packages.default." self.packages.${system}.default;
+      # These require IFD. Use these for development, but not
+      # for release. Run cabal2nix manually to update the
+      # default.nix files. One needs to add ellipses to the
+      # input attribute set in both these files.
+      # elmHasher = haskellPackages.callCabal2nix "elmHasher" ./src/elmHasher { };
+      # snapshot = haskellPackages.callCabal2nix "snapshot" ./src/snapshot { };
 
-        checks = {
-          basic =
-            import ./tests/basic/default.nix {
-              mkElmDerivation = mkElmDerivation pkgs;
-            };
+      defaultPackage =
+        forAllSystems (system:
+          builtins.trace "defaultPackage has been deprecated. Please use packages.default." self.packages.${system}.default
+        );
 
-          custom =
-            import ./tests/custom/default.nix {
-              mkElmDerivation = mkElmDerivation pkgs;
-            };
+      checks =
+        forAllSystems (system:
+          let
+            pkgs =
+              nixpkgsFor.${system};
+          in
+            {
+              basic =
+                import ./tests/basic/default.nix {
+                  mkElmDerivation = mkElmDerivation pkgs;
+                };
 
-          elm-optimize-level-2 =
-            import ./tests/elm-level-2/default.nix {
-              mkElmDerivation = mkElmDerivation pkgs;
-              elm-optimize-level-2 = pkgs.elmPackages.elm-optimize-level-2;
-              elm = pkgs.elmPackages.elm;
-            };
-        };
+              custom =
+                import ./tests/custom/default.nix {
+                  mkElmDerivation = mkElmDerivation pkgs;
+                };
 
-        devShell = haskellPackages.shellFor {
-          packages = p: [
-            self.packages.${system}.elmHasher
-          ];
-          nativeBuildInputs = with haskellPackages;
-            [
-              # haskell-language-server
-              cabal-install
-            ];
+              elm-optimize-level-2 =
+                import ./tests/elm-level-2/default.nix {
+                  mkElmDerivation = mkElmDerivation pkgs;
+                  elm-optimize-level-2 = pkgs.elmPackages.elm-optimize-level-2;
+                  elm = pkgs.elmPackages.elm;
+                };
+            }
+        );
 
-          # Enables Hoogle for the builtin packages.
-          withHoogle = true;
-        };
-      }
-    );
+      devShell =
+        forAllSystems (system:
+          let
+            pkgs =
+              nixpkgsFor.${system};
+
+            haskellPackages =
+              pkgs.haskellPackages;
+          in
+            haskellPackages.shellFor {
+              packages = p: [
+                self.packages.${system}.elmHasher
+              ];
+              nativeBuildInputs = with haskellPackages;
+                [
+                  # haskell-language-server
+                  cabal-install
+                ];
+
+              # Enables Hoogle for the builtin packages.
+              withHoogle = true;
+            }
+        );
+    };
 }
