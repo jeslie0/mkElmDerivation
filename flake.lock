@@ -42,41 +42,7 @@
         "type": "github"
       }
     },
-    "elmSnapshot": {
-      "inputs": {
-        "nixpkgs": "nixpkgs"
-      },
-      "locked": {
-        "lastModified": 1706359268,
-        "narHash": "sha256-GtyfIq8/3ieVAJPkjhqz+vwkpeyIUQho4p9nIVPFU48=",
-        "owner": "jeslie0",
-        "repo": "ElmSnapshot",
-        "rev": "a2fc2ea34ec28745bdf3b9ad43e80ff81d660595",
-        "type": "github"
-      },
-      "original": {
-        "owner": "jeslie0",
-        "repo": "ElmSnapshot",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
-      "locked": {
-        "lastModified": 1687518131,
-        "narHash": "sha256-KirltRIc4SFfk8bTNudIqgKAALH5oqpW3PefmkfWK5M=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "3d8a93602bc54ece7a4e689d9aea1a574e2bbc24",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixpkgs-unstable",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
       "locked": {
         "lastModified": 1696757521,
         "narHash": "sha256-cfgtLNCBLFx2qOzRLI6DHfqTdfWI+UbvsKYa3b3fvaA=",
@@ -133,8 +99,7 @@
       "inputs": {
         "elm-spa": "elm-spa",
         "elm-watch": "elm-watch",
-        "elmSnapshot": "elmSnapshot",
-        "nixpkgs": "nixpkgs_2"
+        "nixpkgs": "nixpkgs"
       }
     }
   },

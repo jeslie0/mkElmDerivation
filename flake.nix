@@ -13,13 +13,9 @@
       url = "github:jeslie0/elm-watch";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    elmSnapshot = {
-      url = "github:jeslie0/ElmSnapshot";
-    };
   };
 
-  outputs = { self, nixpkgs, elm-spa, elm-watch, elmSnapshot }:
+  outputs = { self, nixpkgs, elm-spa, elm-watch }:
     let
       supportedSystems =
         [ "aarch64-linux" "x86_64-linux" "aarch64-darwin" "x86_64-darwin" ];
@@ -39,7 +35,7 @@
         ./mkElmDerivation/elm-hashes.json;
 
       snapshot =
-        system: elmSnapshot.packages.${system}.default;
+        system: import ./src/snapshot/default.nix (nixpkgsFor.${system}.haskellPackages // { lib = nixpkgsFor.${system}.lib; });
 
       homepage =
         "https://github.com/jeslie0/mkElmDerivation";

@@ -1,0 +1,3 @@
+#+title: ElmSnapshot
+
+This is a nix flake wrapper around the ElmSnapshot package, which was adapted from [[https://github.com/cachix/elm2nix][elm2nix]]. It serialises a JSON of elm packages to a binary blob, which the elm compiler uses to compile elm files.
