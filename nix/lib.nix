@@ -12,6 +12,8 @@ rec {
         url = "https://github.com/${name}/archive/${version}.tar.gz";
         sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version};
       };
+      # skip any Makefiles, if present. (Eg, `NoRedInk/elm-simple-fuzzy` tries
+      # to use elm-verify-examples, but it's not in the buildInputs)
       buildPhase = "true";
       installPhase = ''
         mkdir -p $out
