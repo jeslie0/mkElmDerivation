@@ -3,21 +3,51 @@ rec {
   # Given a JSON of elm package hashes, an elm package name, and
   # version, return the derivation for the fetched packages.
   fetchElmPkg = elmHashesJson: name: version:
+    let
+      srcs = with builtins; [
+        (fetchurl {
+          url = "https://github.com/${name}/archive/${version}.tar.gz";
+          sha256 =
+            (fromJSON (readFile elmHashesJson)).${name}.${version}.archiveHash;
+        })
+        (fetchurl {
+          url =
+            "https://package.elm-lang.org/packages/${name}/${version}/docs.json";
+          sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version}.docsHash;
+        })
+      ];
+      pname = lib.replaceStrings [ "/" ] [ "-" ] name;
+    in
     stdenv.mkDerivation {
       unformattedName = name;
-      pname =
-        lib.replaceStrings [ "/" ] [ "-" ] name;
-      version = version;
-      src = with builtins; fetchurl {
-        url = "https://github.com/${name}/archive/${version}.tar.gz";
-        sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version};
-      };
-      # skip any Makefiles, if present. (Eg, `NoRedInk/elm-simple-fuzzy` tries
-      # to use elm-verify-examples, but it's not in the buildInputs)
+      inherit pname srcs version;
+
+      sourceRoot = ".";
+
+      # Unpack both the archive and the docs.json
+      unpackPhase = ''
+        runHook preUnpack
+
+        mkdir source
+        cd source
+        echo srcs is "$srcs"
+        unpackFile $srcs
+        ls -la .
+        mv ./*/* .
+
+        cp ${builtins.elemAt srcs 1} ./docs.json
+
+        cd ..
+
+        runHook postUnpack
+      '';
+
+      # skip any Makefiles, if present
       buildPhase = "true";
+
       installPhase = ''
         mkdir -p $out
-        cp -r * $out
+        cp -r source/* $out
       '';
     };
 
