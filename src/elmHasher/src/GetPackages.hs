@@ -31,6 +31,17 @@ makeLink ::
 makeLink name ver =
   "https://github.com/" <> name <> "/archive/" <> ver <> ".tar.gz"
 
+-- | Take a name and a version and output the link to download the matching
+-- docs.json file.
+makeDocsLink ::
+  -- | Name of Elm package (e.g elm/elm-ui).
+  Name ->
+  -- | Version of Elm package (e.g 0.1.0)
+  Version ->
+  T.Text
+makeDocsLink name ver =
+  "https://package.elm-lang.org/packages/" <> name <> "/" <> ver <> "/docs.json"
+
 -- | A conduit sink to incrementally hash the input, returning the hash.
 hashConduit :: (HashAlgorithm a, Monad m, ByteArrayAccess i) => ConduitT i Void m (Digest a)
 hashConduit = go hashInit
@@ -62,18 +73,22 @@ downloadElmPackage ::
   ElmPackage ->
   ReaderT ReadState IO ()
 downloadElmPackage manager elmPkg@(ElmPackage name ver) = do
-  request <- parseRequest . T.unpack $ makeLink name ver
-  hashM <- runResourceT $ fetchAndHash request manager
+  archiveRequest <- parseRequest . T.unpack $ makeLink name ver
+  docsRequest <- parseRequest . T.unpack $ makeDocsLink name ver
+  
+  archiveHashM <- runResourceT $ fetchAndHash archiveRequest manager
+  docsHashM <- runResourceT $ fetchAndHash docsRequest manager
+  
   (ReadState sucMvar failMvar) <- ask
-  case hashM of
-    Nothing -> do
+  case (archiveHashM, docsHashM) of
+    (Just archiveHash, Just docsHash) -> do
+      succMap <- liftIO $ takeMVar sucMvar
+      let packageHashes = PackageHashes archiveHash docsHash
+      liftIO $ putMVar sucMvar (addHashesToMap elmPkg packageHashes succMap)
+    _ -> do
       -- Add to failed pkgs mvar
       failMap <- liftIO $ takeMVar failMvar
       liftIO $ putMVar failMvar (M.insertWith (<>) name [ver] failMap)
-    Just !hash -> do
-      -- Add to successful pkgs mvar
-      succMap <- liftIO $ takeMVar sucMvar
-      liftIO $ putMVar sucMvar (addHashToMap elmPkg hash succMap)
 
 -- | Downloads all of the elm packages asynchronously, using 100
 -- threads.

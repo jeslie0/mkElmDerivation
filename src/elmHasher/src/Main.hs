@@ -49,7 +49,7 @@ printReport ::
   -- | Previous failures
   M.HashMap Name Versions ->
   -- | Previously hashed packages
-  M.HashMap Name (M.HashMap Version Hash) ->
+  M.HashMap Name (M.HashMap Version PackageHashes) ->
   -- | Packages in elm-packages.json
   M.HashMap Name Versions ->
   -- | Packages we are hashing
@@ -57,7 +57,7 @@ printReport ::
   -- | New Failures
   M.HashMap Name Versions ->
   -- | New packages hashed
-  M.HashMap Name (M.HashMap Version Hash) ->
+  M.HashMap Name (M.HashMap Version PackageHashes) ->
   IO ()
 printReport prevFails prevHashed elmPkgs toHash newFails newSuccesses = do
   putStrLn $ "Number of previous failed packages: " ++ show (sumOfMap prevFails) ++ "."

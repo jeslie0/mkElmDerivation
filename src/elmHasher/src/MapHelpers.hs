@@ -7,16 +7,16 @@ import qualified Data.Vector as V
 import Types
 
 -- | Inserts the Elm package information and hash into the given map.
-addHashToMap ::
+addHashesToMap ::
   -- | Elm Package
   ElmPackage ->
-  -- | Corresponding Hash
-  Hash ->
+  -- | Corresponding Hashes
+  PackageHashes ->
   -- | Map to update
-  M.HashMap Name (M.HashMap Version Hash) ->
-  M.HashMap Name (M.HashMap Version Hash)
-addHashToMap (ElmPackage name ver) hash =
-  M.insertWith (\oldVerMap newVerMap -> M.insert ver hash newVerMap) name (M.insert ver hash M.empty)
+  M.HashMap Name (M.HashMap Version PackageHashes) ->
+  M.HashMap Name (M.HashMap Version PackageHashes)
+addHashesToMap (ElmPackage name ver) hashes =
+  M.insertWith (\oldVerMap newVerMap -> M.insert ver hashes newVerMap) name (M.insert ver hashes M.empty)
 
 -- | Filters the keys and values in the map by terms of the second
 -- that don't appear.
@@ -25,7 +25,7 @@ addHashToMap (ElmPackage name ver) hash =
 extractNewPackages ::
   (Hashable a, Hashable b) =>
   M.HashMap a (V.Vector b) ->
-  M.HashMap a (M.HashMap b c) ->
+  M.HashMap a (M.HashMap b PackageHashes) ->
   M.HashMap a (V.Vector b)
 extractNewPackages =
   M.differenceWith
@@ -62,10 +62,10 @@ removeFailedPkgs =
 joinNewPackages ::
   (Hashable a, Hashable b) =>
   -- | First map.
-  M.HashMap a (M.HashMap b c) ->
+  M.HashMap a (M.HashMap b PackageHashes) ->
   -- | Second map.
-  M.HashMap a (M.HashMap b c) ->
-  M.HashMap a (M.HashMap b c)
+  M.HashMap a (M.HashMap b PackageHashes) ->
+  M.HashMap a (M.HashMap b PackageHashes)
 joinNewPackages =
   M.unionWith M.union
 

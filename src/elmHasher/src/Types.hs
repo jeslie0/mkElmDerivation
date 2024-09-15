@@ -24,9 +24,15 @@ data ElmPackage = ElmPackage
   }
   deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
 
+data PackageHashes = PackageHashes
+  { archiveHash :: Hash,
+    docsHash :: Hash
+  }
+  deriving (Eq, Show, Ord, Generic, ToJSON, FromJSON)
+
 type ElmPackages = V.Vector ElmPackage
 
 data ReadState = ReadState
-  { hashedPkgsMvar :: MVar (M.HashMap Name (M.HashMap Version Hash)),
+  { hashedPkgsMvar :: MVar (M.HashMap Name (M.HashMap Version PackageHashes)),
     failedPkgsMvar :: MVar (M.HashMap Name Versions)
   }

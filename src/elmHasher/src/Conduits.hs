@@ -54,8 +54,8 @@ conduitSaveFailuresMap failedPackages alreadyFailed = do
 
 conduitSaveSuccessesMap ::
   (Monad m) =>
-  M.HashMap Name (M.HashMap Version Hash) ->
-  M.HashMap Name (M.HashMap Version Hash) ->
+  M.HashMap Name (M.HashMap Version PackageHashes) ->
+  M.HashMap Name (M.HashMap Version PackageHashes) ->
   ConduitT () B.ByteString m ()
 conduitSaveSuccessesMap successfulPackages alreadyHashed = do
   yield . B.toStrict . encode $ joinNewPackages successfulPackages alreadyHashed
@@ -78,7 +78,7 @@ remoteSrc = do
 
 getNewPkgsToHash ::
   -- | Already hashed packages.
-  M.HashMap Name (M.HashMap Version Hash) ->
+  M.HashMap Name (M.HashMap Version PackageHashes) ->
   -- | Previous failed packages
   M.HashMap Name Versions ->
   -- | All elm-packages.json.
@@ -89,7 +89,7 @@ getNewPkgsToHash alreadyHashed failuresMap allPkgsMap =
 
 getFailuresSuccesses ::
   M.HashMap Name Versions ->
-  IO (M.HashMap Name Versions, M.HashMap Name (M.HashMap Version Hash))
+  IO (M.HashMap Name Versions, M.HashMap Name (M.HashMap Version PackageHashes))
 getFailuresSuccesses toHash = do
   sucMvar <- Con.newMVar M.empty
   failMvar <- Con.newMVar M.empty
