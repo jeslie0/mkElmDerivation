@@ -12,6 +12,7 @@ rec {
         url = "https://github.com/${name}/archive/${version}.tar.gz";
         sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version};
       };
+      buildPhase = "true";
       installPhase = ''
         mkdir -p $out
         cp -r * $out
