@@ -51,6 +51,9 @@ rec {
       '';
     };
 
+  fetchElmPkgVersions = elmHashesJson: name: versions:
+    builtins.map (version: fetchElmPkg elmHashesJson name version) (lib.lists.unique versions);
+
   # Given a JSON of elm packages hashes and an elm.json, generate the
   # command to create the .elm directory
   mkDotElmCommand = elmHashesJson: elmJson: makeDotElmCommand elmHashesJson { inherit elmJson; };
@@ -60,24 +63,23 @@ rec {
   #
   # Optionally accepts extraDeps, for use with apps that manage their
   # dependencies outside elm.json; like elm-codegen and its elm.codegen.json file.
-  # Pass an attr set with the shape `elmJson = { "miniBill/elm-unicode" = "1.0.2"; };`.
-  makeDotElmCommand = with builtins; elmHashesJson: { elmJson, extraDeps ? {} }:
+  # Pass a list of attr sets with the shape `[ { "miniBill/elm-unicode" = "1.0.2"; }; ]`.
+  makeDotElmCommand = with builtins; elmHashesJson: { elmJson, extraDeps ? [] }:
     let
       dependencies =
         (fromJSON (readFile elmJson)).dependencies.direct //
         (fromJSON (readFile elmJson)).dependencies.indirect //
         (fromJSON (readFile elmJson)).test-dependencies.direct //
-        (fromJSON (readFile elmJson)).test-dependencies.indirect //
-        extraDeps;
-      derivationList =
-        lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies;
+        (fromJSON (readFile elmJson)).test-dependencies.indirect;
+      versionsPerPkg = lib.attrsets.zipAttrs ([dependencies] ++ extraDeps);
+      derivationLists = lib.mapAttrsToList (fetchElmPkgVersions elmHashesJson) versionsPerPkg;
       elmVersion = (fromJSON (readFile elmJson))."elm-version";
       commandsList = builtins.map
         (pkg: ''
           mkdir -p .elm/${elmVersion}/packages/${pkg.unformattedName};
           cp -R ${pkg} .elm/${elmVersion}/packages/${pkg.unformattedName}/${pkg.version};
         '')
-        derivationList;
+        (lib.lists.flatten derivationLists);
     in
     (
       lib.concatStrings commandsList) + ''
