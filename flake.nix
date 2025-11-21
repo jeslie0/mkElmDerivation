@@ -98,7 +98,7 @@
         makeDotElmDirectoryCmd = final: prev: {
           makeDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
             inherit allPackagesJsonPath lib stdenv;
-            snapshot = snapshot final.system;
+            snapshot = snapshot final.stdenv.hostPlatform.system;
           }).makeDotElmCommand ./mkElmDerivation/elm-hashes.json;
         };
       };
