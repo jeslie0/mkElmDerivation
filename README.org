@@ -20,13 +20,13 @@ The following is the content of a =flake.nix= file, which can be used to build a
         "x86_64-linux";
 
       pkgs = import nixpkgs {
-        overlays = [ mkElmDerivation.overlay ];
+        overlays = [ mkElmDerivation.overlays.default ];
         inherit system;
       };
       in
         {
           packages = {
-            default = pkgs.mkElmDerivation {
+            default.${system} = pkgs.mkElmDerivation {
               name = "elm-example";
               src = ./.;
               elmJson = ./elm.json; # This defaults to ${src}/elm.json
