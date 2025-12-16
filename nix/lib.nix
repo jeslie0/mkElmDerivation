@@ -10,7 +10,26 @@ rec {
       version = version;
       src = with builtins; fetchurl {
         url = "https://github.com/${name}/archive/${version}.tar.gz";
-        sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version};
+        sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version}.archiveHash;
+      };
+      buildPhase = "true";
+      installPhase = ''
+        mkdir -p $out
+        cp -r * $out
+      '';
+    };
+
+  # Given a JSON of elm package hashes, an elm package name, and
+  # version, return the derivation for the fetched docs of packages.
+  fetchElmDocs = elmHashesJson: name: version:
+    stdenv.mkDerivation {
+      unformattedName = name;
+      pname =
+        lib.replaceStrings [ "/" ] [ "-" ] name;
+      version = version;
+      src = with builtins; fetchurl {
+        url = "https://package.elm-lang.org/packages/${name}/${version}/docs.json";
+        sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version}.docsHash;
       };
       buildPhase = "true";
       installPhase = ''
@@ -29,7 +48,8 @@ rec {
         (fromJSON (readFile elmJson)).test-dependencies.direct //
         (fromJSON (readFile elmJson)).test-dependencies.indirect;
       derivationList =
-        lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies;
+        lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies
+        ++ lib.mapAttrsToList (fetchElmDocs elmHashesJson) dependencies;
       elmVersion = (fromJSON (readFile elmJson))."elm-version";
       commandsList = builtins.map
         (pkg: ''
