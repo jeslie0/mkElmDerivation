@@ -1,22 +1,27 @@
+{-# LANGUAGE ImportQualifiedPost #-}
+
 module MapHelpers where
 
 import Control.Monad
-import qualified Data.HashMap.Strict as M
+import Data.HashMap.Strict qualified as M
 import Data.Hashable
-import qualified Data.Vector as V
+import Data.Vector qualified as V
 import Types
 
 -- | Inserts the Elm package information and hash into the given map.
-addHashToMap ::
+addHashBundleToMap ::
   -- | Elm Package
   ElmPackage ->
-  -- | Corresponding Hash
-  Hash ->
+  -- | Hash with archive and docs hash
+  HashBundle ->
   -- | Map to update
-  M.HashMap Name (M.HashMap Version Hash) ->
-  M.HashMap Name (M.HashMap Version Hash)
-addHashToMap (ElmPackage name ver) hash =
-  M.insertWith (\oldVerMap newVerMap -> M.insert ver hash newVerMap) name (M.insert ver hash M.empty)
+  M.HashMap Name (M.HashMap Version HashBundle) ->
+  M.HashMap Name (M.HashMap Version HashBundle)
+addHashBundleToMap (ElmPackage name ver) hashBundle =
+  M.insertWith
+    (\_ -> M.insert ver hashBundle)
+    name
+    (M.singleton ver hashBundle)
 
 -- | Filters the keys and values in the map by terms of the second
 -- that don't appear.

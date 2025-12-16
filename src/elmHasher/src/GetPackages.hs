@@ -1,46 +1,59 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module GetPackages where
+module GetPackages (downloadElmPackages) where
 
 import Conduit
-import Control.Concurrent
-import Control.Concurrent.Pool
-import Control.Monad.Reader
-import Crypto.Hash
-import qualified Crypto.Hash as C
+import Control.Concurrent (modifyMVar_)
+import Control.Concurrent.Pool (newPoolIO, noMoreTasksIO, queue, waitForIO)
+import Control.Monad (void)
+import Control.Monad.Reader (MonadReader (..), ReaderT (..))
+import Control.Monad.Trans.Maybe (MaybeT (..))
+import Crypto.Hash qualified as C
 import Data.ByteArray (ByteArrayAccess)
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as B
-import qualified Data.HashMap.Strict as M
-import qualified Data.Text as T
-import MapHelpers
+import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as B
+import Data.HashMap.Strict qualified as M
+import Data.Text qualified as T
+import MapHelpers (addHashBundleToMap, mapMWithKey_)
+import Network.HTTP.Conduit (Manager, Request, Response (..), http, newManager, parseRequest, tlsManagerSettings)
+import Network.HTTP.Types.Status (statusIsSuccessful)
 import Types
-import Network.HTTP.Conduit
-import Network.HTTP.Types.Status
 
 -- | Take a name and a version and output the link to download it
 -- from.
-makeLink ::
+makeArchiveLink ::
   -- | Name of Elm package (e.g elm/elm-ui).
   Name ->
   -- | Version of Elm package (e.g 0.1.0)
   Version ->
   T.Text
-makeLink name ver =
+makeArchiveLink name ver =
   "https://github.com/" <> name <> "/archive/" <> ver <> ".tar.gz"
 
+-- | Take a name and a version and output the link to download it
+-- from.
+makeDocsLink ::
+  -- | Name of Elm package (e.g elm/elm-ui).
+  Name ->
+  -- | Version of Elm package (e.g 0.1.0)
+  Version ->
+  T.Text
+makeDocsLink name ver =
+  "https://package.elm-lang.org/packages/" <> name <> "/" <> ver <> "/docs.json"
+
 -- | A conduit sink to incrementally hash the input, returning the hash.
-hashConduit :: (HashAlgorithm a, Monad m, ByteArrayAccess i) => ConduitT i Void m (Digest a)
-hashConduit = go hashInit
+hashConduit :: (C.HashAlgorithm a, Monad m, ByteArrayAccess i) => ConduitT i Void m (C.Digest a)
+hashConduit = go C.hashInit
   where
-    go :: (Monad m, ByteArrayAccess i, HashAlgorithm a) => Context a -> ConduitT i Void m (Digest a)
+    go :: (Monad m, ByteArrayAccess i, C.HashAlgorithm a) => C.Context a -> ConduitT i Void m (C.Digest a)
     go ctx = do
       bytesM <- await
       case bytesM of
-        Just bytes -> go $! hashUpdate ctx bytes
-        Nothing -> return $! hashFinalize ctx
+        Just bytes -> go $! C.hashUpdate ctx bytes
+        Nothing -> return $! C.hashFinalize ctx
 
 -- | Fetch and hash the given request in constant memory, using conduits.
 fetchAndHash :: (MonadResource m, Monad m) => Request -> Manager -> m (Maybe T.Text)
@@ -49,7 +62,7 @@ fetchAndHash request manager = do
   if statusIsSuccessful . responseStatus $ resp
     then do
       let conduit = responseBody resp
-      digest <- runConduit $ conduit .| (hashConduit :: (Monad m) => ConduitT BS.ByteString Void m (Digest SHA256))
+      digest <- runConduit $ conduit .| (hashConduit :: (Monad m) => ConduitT BS.ByteString Void m (C.Digest C.SHA256))
       return . Just . T.pack . show $ digest
     else return Nothing
 
@@ -62,18 +75,21 @@ downloadElmPackage ::
   ElmPackage ->
   ReaderT ReadState IO ()
 downloadElmPackage manager elmPkg@(ElmPackage name ver) = do
-  request <- parseRequest . T.unpack $ makeLink name ver
-  hashM <- runResourceT $ fetchAndHash request manager
-  (ReadState sucMvar failMvar) <- ask
-  case hashM of
+  maybeHashBundle <-
+    runMaybeT $
+      HashBundle <$> hashURLContent (makeArchiveLink name ver) <*> hashURLContent (makeDocsLink name ver)
+  (ReadState successMapMvar failMvar) <- ask
+  case maybeHashBundle of
     Nothing -> do
       -- Add to failed pkgs mvar
-      failMap <- liftIO $ takeMVar failMvar
-      liftIO $ putMVar failMvar (M.insertWith (<>) name [ver] failMap)
-    Just !hash -> do
+      void . liftIO . modifyMVar_ failMvar $ pure . M.insertWith (<>) name [ver]
+    Just !hashBundle -> do
       -- Add to successful pkgs mvar
-      succMap <- liftIO $ takeMVar sucMvar
-      liftIO $ putMVar sucMvar (addHashToMap elmPkg hash succMap)
+      void . liftIO . modifyMVar_ successMapMvar $ pure . addHashBundleToMap elmPkg hashBundle
+  where
+    hashURLContent link = MaybeT $ do
+      request <- parseRequest . T.unpack $ link
+      runResourceT $ fetchAndHash request manager
 
 -- | Downloads all of the elm packages asynchronously, using 100
 -- threads.

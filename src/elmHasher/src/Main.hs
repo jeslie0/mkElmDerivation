@@ -1,18 +1,19 @@
+{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
+import Conduit
+import Conduits
 import Control.Exception
 import Control.Monad.IO.Class
 import Control.Monad.Trans.Maybe
-import qualified Data.ByteString.Lazy as B
-import Conduit
-import qualified Data.Conduit.Binary as BS
-import qualified Data.HashMap.Strict as M
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import Conduits
+import Data.ByteString.Lazy qualified as B
+import Data.Conduit.Binary qualified as BS
+import Data.HashMap.Strict qualified as M
+import Data.Text qualified as T
+import Data.Vector qualified as V
 import Types
 
 -- * Main
@@ -22,12 +23,16 @@ main = runMaybeT $ do
   -- Use a conduit to get the (potentially non-existent) file of
   -- hashed packages.
   outputPath <- liftIO output
-  alreadyHashedPkgs <- liftIO . runConduitRes $ catchC (BS.sourceFile outputPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFile2Map
+  alreadyHashedPkgs <-
+    liftIO . runConduitRes $
+      catchC (BS.sourceFile outputPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFile2Map
 
   -- Use a conduit to get the (potentially non-existent) file of
   -- failed packages.
   failuresPath <- liftIO failures
-  previousFailuresNVsMap <- liftIO . runConduitRes $ catchC (BS.sourceFile failuresPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFile2Map
+  previousFailuresNVsMap <-
+    liftIO . runConduitRes $
+      catchC (BS.sourceFile failuresPath) (\(e :: IOException) -> liftIO $ print e) .| conduitFile2Map
 
   -- The keymap obtained from downloading and parsing
   -- elm-packages.json.
@@ -37,8 +42,8 @@ main = runMaybeT $ do
 
   (newFailures, newSuccesses) <- liftIO $ getFailuresSuccesses pkgsToHash
 
-  liftIO $ runConduitRes $ conduitSaveSuccessesMap newSuccesses alreadyHashedPkgs .| BS.sinkFile outputPath
-  liftIO $ runConduitRes $ conduitSaveFailuresMap newFailures previousFailuresNVsMap .| BS.sinkFile failuresPath
+  liftIO . runConduitRes $ conduitSaveSuccessesMap newSuccesses alreadyHashedPkgs .| BS.sinkFile outputPath
+  liftIO . runConduitRes $ conduitSaveFailuresMap newFailures previousFailuresNVsMap .| BS.sinkFile failuresPath
 
   liftIO $ printReport previousFailuresNVsMap alreadyHashedPkgs elmJsonNVsMap pkgsToHash newFailures newSuccesses
 
@@ -49,7 +54,7 @@ printReport ::
   -- | Previous failures
   M.HashMap Name Versions ->
   -- | Previously hashed packages
-  M.HashMap Name (M.HashMap Version Hash) ->
+  M.HashMap Name (M.HashMap Version HashBundle) ->
   -- | Packages in elm-packages.json
   M.HashMap Name Versions ->
   -- | Packages we are hashing
@@ -57,7 +62,7 @@ printReport ::
   -- | New Failures
   M.HashMap Name Versions ->
   -- | New packages hashed
-  M.HashMap Name (M.HashMap Version Hash) ->
+  M.HashMap Name (M.HashMap Version HashBundle) ->
   IO ()
 printReport prevFails prevHashed elmPkgs toHash newFails newSuccesses = do
   putStrLn $ "Number of previous failed packages: " ++ show (sumOfMap prevFails) ++ "."

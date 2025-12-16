@@ -190,7 +190,7 @@
               ];
               nativeBuildInputs = with haskellPackages;
                 [
-                  # haskell-language-server
+                  haskell-language-server
                   cabal-install
                 ];
 
