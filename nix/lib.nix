@@ -4,9 +4,8 @@ rec {
   # version, return the derivation for the fetched packages.
   fetchElmPkg = elmHashesJson: name: version:
     stdenv.mkDerivation {
-      unformattedName = name;
       pname =
-        lib.replaceStrings [ "/" ] [ "-" ] name;
+        lib.replaceStrings [ "/" ] [ "-" ] name + "-archive";
       version = version;
       src = with builtins; fetchurl {
         url = "https://github.com/${name}/archive/${version}.tar.gz";
@@ -25,17 +24,31 @@ rec {
     stdenv.mkDerivation {
       unformattedName = name;
       pname =
-        lib.replaceStrings [ "/" ] [ "-" ] name;
+        lib.replaceStrings [ "/" ] [ "-" ] name + "-docs";
       version = version;
       src = with builtins; fetchurl {
         url = "https://package.elm-lang.org/packages/${name}/${version}/docs.json";
         sha256 = (fromJSON (readFile elmHashesJson)).${name}.${version}.docsHash;
       };
-      buildPhase = "true";
+      dontUnpack = true;
       installPhase = ''
         mkdir -p $out
-        cp -r * $out
+        cp $src $out/docs.json
       '';
+    };
+
+  fetchElmArchiveAndDocs = elmHashesJsonPath: name: version:
+    stdenv.mkDerivation {
+      unformattedName = name;
+      pname =
+        lib.replaceStrings [ "/" ] [ "-" ] name + "-docs-archive-bundle";
+      version = version;
+      src = fetchElmPkg elmHashesJsonPath name version;
+      installPhase = ''
+        mkdir $out
+        cp -r $src/* $out
+        cp -r ${fetchElmDocs elmHashesJsonPath name version}/* $out
+'';
     };
 
   # Given a JSON of elm packages hashes and an elm.json, generate the
@@ -48,8 +61,7 @@ rec {
         (fromJSON (readFile elmJson)).test-dependencies.direct //
         (fromJSON (readFile elmJson)).test-dependencies.indirect;
       derivationList =
-        lib.mapAttrsToList (fetchElmPkg elmHashesJson) dependencies
-        ++ lib.mapAttrsToList (fetchElmDocs elmHashesJson) dependencies;
+        lib.mapAttrsToList (fetchElmArchiveAndDocs elmHashesJson) dependencies;
       elmVersion = (fromJSON (readFile elmJson))."elm-version";
       commandsList = builtins.map
         (pkg: ''

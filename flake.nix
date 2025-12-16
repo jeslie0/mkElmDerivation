@@ -172,6 +172,10 @@
                   elm-optimize-level-2 = pkgs.elmPackages.elm-optimize-level-2;
                   elm = pkgs.elmPackages.elm;
                 };
+
+              dotElm = import ./tests/dotElm/default.nix {
+                  mkElmDerivation = mkElmDerivation pkgs;
+              };
             }
         );
 
