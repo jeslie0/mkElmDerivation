@@ -2,7 +2,9 @@
   description = "A flake containing useful tools for building Elm applications with Nix.";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    nixpkgs = {
+      url = "github:nixos/nixpkgs/nixpkgs-unstable";
+    };
 
     elm-spa = {
       url = "github:jeslie0/elm-spa";
@@ -53,9 +55,6 @@
         };
     in
     {
-      # overlay =
-      #   builtins.trace "\"mkElmDerivation.overlay\" has been deprecated. Please use \"mkElmDerivation.overlays.mkElmDerivation\" instead." self.overlays.mkElmDerivation;
-
       overlays = {
         # The default overlay is the union of the other overlays in
         # this flake.
@@ -94,7 +93,15 @@
             snapshot = snapshot prev.stdenv.hostPlatform.system;
           }).mkDotElmCommand ./mkElmDerivation/elm-hashes.json;
         };
+
+        makeDotElmDirectoryCmd = final: prev: {
+          makeDotElmDirectoryCmd = with prev; (import ./nix/lib.nix {
+            inherit allPackagesJsonPath lib stdenv;
+            snapshot = snapshot prev.stdenv.hostPlatform.system;
+          }).makeDotElmCommand ./mkElmDerivation/elm-hashes.json;
+        };
       };
+
 
       packages =
         forAllSystems
@@ -174,6 +181,10 @@
                 };
 
               dotElm = import ./tests/dotElm/default.nix {
+                  mkElmDerivation = mkElmDerivation pkgs;
+              };
+
+              elm-docs = import ./tests/elm-docs/default.nix {
                   mkElmDerivation = mkElmDerivation pkgs;
               };
             }
