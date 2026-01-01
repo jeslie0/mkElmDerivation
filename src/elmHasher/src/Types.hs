@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ImportQualifiedPost #-}
 
 module Types where
 
@@ -27,7 +27,10 @@ data ElmPackage = ElmPackage
 
 type ElmPackages = V.Vector ElmPackage
 
-data HashBundle = HashBundle {archiveHash :: !Hash, docsHash :: !Hash}
+data HashBundle = HashBundle
+  { archiveHash :: !Hash,
+    docsHash :: !Hash
+  }
   deriving (Eq, Show, Generic, ToJSON, FromJSON)
 
 data ReadState = ReadState

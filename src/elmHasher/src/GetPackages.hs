@@ -33,8 +33,8 @@ makeArchiveLink ::
 makeArchiveLink name ver =
   "https://github.com/" <> name <> "/archive/" <> ver <> ".tar.gz"
 
--- | Take a name and a version and output the link to download it
--- from.
+-- | Take a name and a version and output the link to download the matching
+-- docs.json file.
 makeDocsLink ::
   -- | Name of Elm package (e.g elm/elm-ui).
   Name ->
