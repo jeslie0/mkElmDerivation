@@ -49,7 +49,8 @@ rec {
       installPhase = ''
         mkdir $out
         cp -r $src/* $out
-        cp -r ${fetchElmDocs elmHashesJsonPath name version}/* $out
+        # overwrite docs.json, if there is also a docs.json in the package sources
+        cp -rf ${fetchElmDocs elmHashesJsonPath name version}/* $out
 '';
     };
 
