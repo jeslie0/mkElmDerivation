@@ -46,6 +46,8 @@ rec {
         lib.replaceStrings [ "/" ] [ "-" ] name + "-docs-archive-bundle";
       version = version;
       src = fetchElmArchive elmHashesJsonPath name version;
+      # skip any Makefiles, if present
+      buildPhase = "true";
       installPhase = ''
         mkdir $out
         cp -r $src/* $out
