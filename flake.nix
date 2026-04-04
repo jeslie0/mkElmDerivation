@@ -50,7 +50,7 @@
         import ./nix/mkElmDerivation.nix {
           inherit stdenv lib allPackagesJsonPath elmHashesJsonPath;
           elm = elmPackages.elm;
-          uglify-js = nodePackages.uglify-js;
+          uglify-js = uglify-js;
           snapshot = snapshot stdenv.hostPlatform.system;
         };
     in
